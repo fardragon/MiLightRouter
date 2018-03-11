@@ -10,7 +10,7 @@ void setup()
     Serial.begin(115200);    
     Serial.println();
 
-    WiFi.hostname("MiLight MQTT Gateway");
+    WiFi.hostname("MiLightRouter");
     WiFi.begin("Livebox-T110E5", "fv215b183");
     Serial.print("Connecting");
     while (WiFi.status() != WL_CONNECTED)

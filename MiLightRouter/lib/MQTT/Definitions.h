@@ -5,8 +5,13 @@
 #include <Arduino.h>
 #include "Utility.h"
 
+
+
 //Control packet types
-#define MQTT_PACKET_CONNECT 0b00010000
+#define MQTT_PACKET_CONNECT  0b00010000
+#define MQTT_PACKET_CONNACK  0b00100000
+#define MQTT_PACKET_PINGREQ  0b11000000
+#define MQTT_PACKET_PINGRESP 0b11010000
 
 //Connect flags
 #define MQTT_CF_CLEAN_SESSION _BV(1)
@@ -25,7 +30,8 @@ namespace MQTT
     {
         Disconnected,
         Connecting,
-        Error
+        Error,
+        Connected
     };
 
 
