@@ -11,7 +11,7 @@ void setup()
     Serial.println();
 
     WiFi.hostname("MiLightRouter");
-    WiFi.begin("Livebox-T110E5", "fv215b183");
+    WiFi.begin("Klejnot Nilu", "fv215b183");
     Serial.print("Connecting");
     while (WiFi.status() != WL_CONNECTED)
     {
@@ -22,11 +22,19 @@ void setup()
     Serial.print("Connected, IP address: ");
     Serial.println(WiFi.localIP());
 
-    mqtt.Initialize({192,168,1,23}, 1883);
+    mqtt.Initialize({83 , 29, 147, 156} , 1883);
+    
 }
+
+bool sent = false;
 
 void loop() 
 {
-    mqtt.Loop();
+    auto result = mqtt.Loop();
+    if ((result == MQTT::Status::Connected) && (!sent))
+    {
+        mqtt.Subscribe("czop", 4);
+        sent = true;
+    }
 
 }

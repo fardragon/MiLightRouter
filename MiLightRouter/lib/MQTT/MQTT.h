@@ -18,6 +18,8 @@ namespace MQTT
         MQTT::Status Initialize(IPAddress ServerAddress, uint16_t Port);
         MQTT::Status Loop();
 
+        void Subscribe(char *topic, uint8_t length);
+
         private:
         bool ReceivePacket();
         bool InterpretPacket();
@@ -27,12 +29,15 @@ namespace MQTT
         void SendData();
 
         uint8_t LengthBytes();
+        inline uint16_t NextPacketID();
 
         bool Packet_CONNACK();
         bool Packet_PINGRESP();
+        bool Packet_SUBACK();
 
         void GenerateConnectPacket();
         void GeneratePingPacket();
+        void GenerateSubscribePacket(char *topic, uint8_t length);
 
 
         private:
@@ -41,6 +46,8 @@ namespace MQTT
 
         uint8_t m_Buffer[MQTT_MAX_PACKET_SIZE];
         uint8_t m_BufferLength;
+
+        uint16_t m_PacketID;
 
         uint32_t m_LastActivity;
         bool m_SentPing;

@@ -3,7 +3,7 @@
 
 
 MQTT::MQTTClient::MQTTClient()
-    : m_Status(MQTT::Status::Disconnected), m_LastActivity(millis()), m_SentPing(false)
+    : m_Status(MQTT::Status::Disconnected), m_LastActivity(millis()), m_SentPing(false), m_PacketID(0)
 {
 
 };
@@ -36,8 +36,6 @@ void MQTT::MQTTClient::GeneratePingPacket()
 void MQTT::MQTTClient::GenerateConnectPacket()
 {
     uint8_t *ptr = m_Buffer;
-
-
     *(ptr++) = MQTT_PACKET_CONNECT;
     ++ptr; // Skip length field
     ptr = MQTT::UTF8Encode(ptr,"MQTT", 4); // Protocol name
@@ -46,6 +44,20 @@ void MQTT::MQTTClient::GenerateConnectPacket()
     *(ptr++) = (MQTT_KEEP_ALIVE & 0xFF00) >> 8;   // Keep alive
     *(ptr++) = (MQTT_KEEP_ALIVE & 0x00FF);  // Keep alive
     ptr = MQTT::UTF8Encode(ptr,"abcd1234abcd1234", 16);
+    m_BufferLength = (ptr - m_Buffer);
+    m_Buffer[1] =  m_BufferLength - 2;
+}
+
+void MQTT::MQTTClient::GenerateSubscribePacket(char *topic, uint8_t length)
+{
+    uint8_t *ptr = m_Buffer;
+    *(ptr++) = MQTT_PACKET_SUBSCRIBE;
+    ++ptr; // Skip length field
+    auto packetID = this->NextPacketID();
+    *(ptr++) = (packetID & 0xFF00) >> 8;
+    *(ptr++) = (packetID & 0x00FF);
+    ptr = MQTT::UTF8Encode(ptr, topic, length);
+    *(ptr++) = 1;
     m_BufferLength = (ptr - m_Buffer);
     m_Buffer[1] =  m_BufferLength - 2;
 }
@@ -140,6 +152,13 @@ void MQTT::MQTTClient::SendData()
 {
     m_Client.write(m_Buffer,m_BufferLength);
     m_LastActivity = millis();
+    /*
+    Serial.println("New packet: ");
+    for (uint8_t i = 0; i < m_BufferLength; ++i)
+    {
+        Serial.println(m_Buffer[i]);
+    }
+    */
 }
 
 bool MQTT::MQTTClient::InterpretPacket()
@@ -152,6 +171,9 @@ bool MQTT::MQTTClient::InterpretPacket()
         
         case MQTT_PACKET_PINGRESP:
         return this->Packet_PINGRESP();
+
+        case MQTT_PACKET_SUBACK:
+        return this->Packet_SUBACK();
 
 
 
@@ -249,3 +271,36 @@ bool MQTT::MQTTClient::Packet_PINGRESP()
     m_SentPing = false;
     return true;
 }
+
+bool MQTT::MQTTClient::Packet_SUBACK()
+{
+    Serial.println("SUBACK");
+    uint8_t startIndex = this->LengthBytes() + 1;
+    uint16_t packetID = (m_Buffer[startIndex] << 8) | (m_Buffer[startIndex+1]);
+    Serial.print("Packet ID: ");
+    Serial.println(packetID);
+    m_Status = MQTT::Status::Connected;
+    return true;
+}
+
+bool MQTT::MQTTClient::Packet_PUBLISH()
+{
+    return true;
+}
+
+inline uint16_t MQTT::MQTTClient::NextPacketID()
+{
+    return ++m_PacketID;
+}
+
+void MQTT::MQTTClient::Subscribe(char *topic, uint8_t length)
+{
+    if (m_Status != MQTT::Status::Connected)
+    {
+        Serial.println("Cannot subscribe at this moment");
+    }
+    this->GenerateSubscribePacket(topic,length);
+    m_Status = MQTT::Status::Subscribing;
+    this->SendData();
+}
+
