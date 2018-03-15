@@ -1,6 +1,8 @@
 #include "MQTT.h"
 #include "Utility.h"
 
+#include <functional>
+#include <algorithm>
 
 MQTT::MQTTClient::MQTTClient()
     : m_Status(MQTT::Status::Disconnected), m_LastActivity(millis()), m_SentPing(false), m_PacketID(0)
@@ -9,6 +11,22 @@ MQTT::MQTTClient::MQTTClient()
 };
 
 MQTT::Status MQTT::MQTTClient::Initialize(IPAddress ServerAddress, uint16_t Port)
+{
+    if(!m_Client.connect(ServerAddress,Port))
+    {
+        Serial.println("Failed to open socket to MQTT server");
+        m_Status = MQTT::Status::Error;
+        return m_Status;
+        
+    }
+    Serial.println("Opened socket to MQTT server");
+    m_Status = MQTT::Status::Connecting;
+    this->GenerateConnectPacket();
+    this->SendData();
+    return m_Status;
+}
+
+MQTT::Status MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port)
 {
     if(!m_Client.connect(ServerAddress,Port))
     {
@@ -48,7 +66,7 @@ void MQTT::MQTTClient::GenerateConnectPacket()
     m_Buffer[1] =  m_BufferLength - 2;
 }
 
-void MQTT::MQTTClient::GenerateSubscribePacket(char *topic, uint8_t length)
+uint16_t MQTT::MQTTClient::GenerateSubscribePacket(const char *topic, uint8_t length)
 {
     uint8_t *ptr = m_Buffer;
     *(ptr++) = MQTT_PACKET_SUBSCRIBE;
@@ -60,6 +78,7 @@ void MQTT::MQTTClient::GenerateSubscribePacket(char *topic, uint8_t length)
     *(ptr++) = 1;
     m_BufferLength = (ptr - m_Buffer);
     m_Buffer[1] =  m_BufferLength - 2;
+    return packetID;
 }
 
 MQTT::Status MQTT::MQTTClient::Loop()
@@ -175,7 +194,8 @@ bool MQTT::MQTTClient::InterpretPacket()
         case MQTT_PACKET_SUBACK:
         return this->Packet_SUBACK();
 
-
+        case MQTT_PACKET_PUBLISH:
+        return this->Packet_PUBLISH();
 
 
 
@@ -279,12 +299,52 @@ bool MQTT::MQTTClient::Packet_SUBACK()
     uint16_t packetID = (m_Buffer[startIndex] << 8) | (m_Buffer[startIndex+1]);
     Serial.print("Packet ID: ");
     Serial.println(packetID);
-    m_Status = MQTT::Status::Connected;
+    auto pred = [packetID](const Subscribtion &a) -> bool 
+    {
+        return (a.m_ID == packetID);
+    };
+    auto ix = std::find_if(m_Subscriptions.begin(),m_Subscriptions.end(),pred);
+    if (ix == m_Subscriptions.end()) return false;
+    (*ix).m_Ack = true;
     return true;
 }
 
 bool MQTT::MQTTClient::Packet_PUBLISH()
 {
+    uint8_t qos = ((*m_Buffer) & 0b00000110) >> 1;
+    if ((qos != 1) && (qos != 0)) 
+    {
+        Serial.print ("Invalid QOS: ");
+        Serial.println(qos);
+        m_Client.stop();
+        m_Status = MQTT::Status::Error;
+        return false;
+    }
+    uint8_t skip = this->LengthBytes();
+    uint8_t* ptr = m_Buffer + skip + 1;
+    std::string topic;
+    ptr = MQTT::UTF8Decode(ptr, topic);
+
+    auto pred = [topic](const Subscribtion &a) -> bool 
+    {
+        return (a.m_Topic == topic);
+    };
+    auto ix = std::find_if(m_Subscriptions.begin(),m_Subscriptions.end(),pred);
+    if (ix == m_Subscriptions.end()) 
+    {
+        Serial.print("Invalid topic: ");
+        Serial.println(topic.c_str());
+        m_Client.stop();
+        m_Status = MQTT::Status::Error;
+        return false;
+    }
+    uint16_t packetID = (*(ptr++)) << 8;
+    packetID |= *(ptr++);
+    uint8_t payloadLength = m_BufferLength - (ptr - m_Buffer) + 2;
+    uint8_t *payload = static_cast<uint8_t*> (alloca(payloadLength));
+    memcpy(payload, ptr, payloadLength);
+    Serial.print("Payload length: "); Serial.println(payloadLength);
+    (*ix).m_Handler(payload,payloadLength);
     return true;
 }
 
@@ -293,14 +353,14 @@ inline uint16_t MQTT::MQTTClient::NextPacketID()
     return ++m_PacketID;
 }
 
-void MQTT::MQTTClient::Subscribe(char *topic, uint8_t length)
+void MQTT::MQTTClient::Subscribe(std::string topic, std::function<void(uint8_t*,uint8_t)> handler)
 {
     if (m_Status != MQTT::Status::Connected)
     {
         Serial.println("Cannot subscribe at this moment");
     }
-    this->GenerateSubscribePacket(topic,length);
-    m_Status = MQTT::Status::Subscribing;
+    auto packetID = this->GenerateSubscribePacket(topic.c_str(),topic.length());
+    m_Subscriptions.emplace_back(topic,handler,packetID);
     this->SendData();
 }
 

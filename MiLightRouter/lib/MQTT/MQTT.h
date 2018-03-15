@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <vector>
+#include <string>
 
 #include "Definitions.h"
 #define MQTT_MAX_PACKET_SIZE 255
@@ -16,9 +18,10 @@ namespace MQTT
         public:
         MQTTClient();
         MQTT::Status Initialize(IPAddress ServerAddress, uint16_t Port);
+        MQTT::Status Initialize(const char *ServerAddress, uint16_t Port);
         MQTT::Status Loop();
 
-        void Subscribe(char *topic, uint8_t length);
+        void Subscribe(std::string topic, std::function<void(uint8_t*,uint8_t)> handler);
 
         private:
         bool ReceivePacket();
@@ -34,10 +37,11 @@ namespace MQTT
         bool Packet_CONNACK();
         bool Packet_PINGRESP();
         bool Packet_SUBACK();
+        bool Packet_PUBLISH();
 
         void GenerateConnectPacket();
         void GeneratePingPacket();
-        void GenerateSubscribePacket(char *topic, uint8_t length);
+        uint16_t GenerateSubscribePacket(const char *topic, uint8_t length);
 
 
         private:
@@ -51,6 +55,8 @@ namespace MQTT
 
         uint32_t m_LastActivity;
         bool m_SentPing;
+
+        std::vector<MQTT::Subscribtion> m_Subscriptions;
 
     };
 }

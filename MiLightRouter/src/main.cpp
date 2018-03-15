@@ -22,18 +22,29 @@ void setup()
     Serial.print("Connected, IP address: ");
     Serial.println(WiFi.localIP());
 
-    mqtt.Initialize({83 , 29, 147, 156} , 1883);
+    mqtt.Initialize( "fardragon.ddns.net" , 1883);
     
 }
 
 bool sent = false;
+
+void test(uint8_t* data, uint8_t length)
+{
+    Serial.println("czop");
+    Serial.print("Data: ");
+    for (uint8_t i = 0; i < length; ++i)
+    {
+        Serial.print(data[i], HEX);
+    }
+    Serial.println();
+}
 
 void loop() 
 {
     auto result = mqtt.Loop();
     if ((result == MQTT::Status::Connected) && (!sent))
     {
-        mqtt.Subscribe("czop", 4);
+        mqtt.Subscribe("czop", test);
         sent = true;
     }
 

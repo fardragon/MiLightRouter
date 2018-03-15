@@ -3,6 +3,8 @@
 
 
 #include <Arduino.h>
+#include <functional>
+#include <string>
 #include "Utility.h"
 
 
@@ -34,9 +36,22 @@ namespace MQTT
         Disconnected,
         Connecting,
         Error,
-        Connected,
-        Subscribing
+        Connected
     };
+
+    struct Subscribtion
+    {
+        Subscribtion(std::string Topic, std::function<void(uint8_t*,uint8_t)> Handler, uint16_t ID)
+            : m_Topic(Topic), m_Handler(Handler), m_ID(ID), m_Ack(false)
+            {
+            };
+        std::string m_Topic;
+        std::function<void(uint8_t*,uint8_t)> m_Handler;
+        bool m_Ack;
+        uint16_t m_ID;
+    };
+
+
 
 
 }
