@@ -81,6 +81,15 @@ uint16_t MQTT::MQTTClient::GenerateSubscribePacket(const char *topic, uint8_t le
     return packetID;
 }
 
+void MQTT::MQTTClient::GeneratePublishAckPacket(const uint16_t &packetID)
+{
+    m_Buffer[0] = MQTT_PACKET_PUBACK;
+    m_Buffer[1] = 2;
+    m_Buffer[2] = (packetID & 0xFF00) >> 8;
+    m_Buffer[3] = (packetID & 0x00FF);
+    m_BufferLength = 4;
+}
+
 MQTT::Status MQTT::MQTTClient::Loop()
 {
     if (( m_Status == MQTT::Status::Error ) || ( m_Status == MQTT::Status::Disconnected )) return m_Status;
@@ -338,14 +347,27 @@ bool MQTT::MQTTClient::Packet_PUBLISH()
         m_Status = MQTT::Status::Error;
         return false;
     }
-    uint16_t packetID = (*(ptr++)) << 8;
-    packetID |= *(ptr++);
-    uint8_t payloadLength = m_BufferLength - (ptr - m_Buffer) + 2;
-    uint8_t *payload = static_cast<uint8_t*> (alloca(payloadLength));
-    memcpy(payload, ptr, payloadLength);
-    Serial.print("Payload length: "); Serial.println(payloadLength);
-    (*ix).m_Handler(payload,payloadLength);
-    return true;
+    if (qos == 1)
+    {
+        uint16_t packetID = (*(ptr++)) << 8;
+        packetID |= *(ptr++);
+
+        uint8_t payloadLength = m_BufferLength - (ptr - m_Buffer);
+        uint8_t *payload = static_cast<uint8_t*> (alloca(payloadLength));
+        memcpy(payload, ptr, payloadLength);  
+        (*ix).m_Handler(payload,payloadLength);
+        this->GeneratePublishAckPacket(packetID);
+        this->SendData();
+        return true;
+    }
+    else
+    {
+        uint8_t payloadLength = m_BufferLength - (ptr - m_Buffer);
+        uint8_t *payload = static_cast<uint8_t*> (alloca(payloadLength));
+        memcpy(payload, ptr, payloadLength);
+        (*ix).m_Handler(payload,payloadLength);
+        return true;
+    }   
 }
 
 inline uint16_t MQTT::MQTTClient::NextPacketID()

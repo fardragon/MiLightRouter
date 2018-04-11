@@ -42,6 +42,7 @@ namespace MQTT
         void GenerateConnectPacket();
         void GeneratePingPacket();
         uint16_t GenerateSubscribePacket(const char *topic, uint8_t length);
+        void GeneratePublishAckPacket(const uint16_t &packetID);
 
 
         private:
