@@ -41,6 +41,8 @@ void setup()
     {
         WiFi.softAPConfig({192,168,1,1},{192,168,1,1},{255,255,255,0});
         WiFi.softAP("MiLightRouter", "12345678");
+        webServer.on("/",&WebPages::ConfigRoot);
+
 
     }
     else
@@ -50,7 +52,6 @@ void setup()
         Serial.println(WiFi.localIP());
         mqtt = new MQTT::MQTTClient();
         mqtt->Initialize( "192.168.1.5" , 1883);
-        webServer.on("/",&WebPages::RouterRoot);
     }
     webServer.begin();   
 }

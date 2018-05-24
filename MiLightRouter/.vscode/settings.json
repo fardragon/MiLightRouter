@@ -6,5 +6,9 @@
     "files.associations": {
         "array": "cpp",
         "functional": "cpp"
+    },
+    "terminal.integrated.env.linux": {
+        "PATH": "/home/fardragon/.platformio/penv/bin:/home/fardragon/.platformio/penv:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl",
+        "PLATFORMIO_CALLER": "vscode"
     }
 }

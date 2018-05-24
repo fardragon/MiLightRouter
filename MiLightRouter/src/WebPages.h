@@ -8,7 +8,7 @@ extern ESP8266WebServer webServer;
 
 namespace WebPages
 {
-    void RouterRoot();
+    void ConfigRoot();
 }
 
 

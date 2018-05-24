@@ -23,9 +23,10 @@ const char PROGMEM INDEX_HTML[] =
 
 namespace WebPages
 {
-    void RouterRoot()
+    void ConfigRoot()
     {
-        webServer.send(200, "text/html", INDEX_HTML);
+        std::string site(INDEX_HTML);
+        webServer.send(200, "text/html", site.c_str());
     }
     
 }
