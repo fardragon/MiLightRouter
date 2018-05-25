@@ -3,43 +3,35 @@
 
 #include <functional>
 #include <algorithm>
+#include <EEPROM.h>
 
 MQTT::MQTTClient::MQTTClient()
     : m_Status(MQTT::Status::Disconnected), m_LastActivity(millis()), m_SentPing(false), m_PacketID(0)
 {
+    EEPROM.begin(48);
+
+    auto address = this->ReadServerAddress().c_str();
+    auto port = this->ReadServerPort();
+    
+    Serial.println(address);
+    Serial.println(port);
+    this->Initialize(address, port);
 
 };
 
-MQTT::Status MQTT::MQTTClient::Initialize(IPAddress ServerAddress, uint16_t Port)
+void MQTT::MQTTClient::Initialize(const char *ServerAddress, MQTT_PORT_TYPE Port)
 {
     if(!m_Client.connect(ServerAddress,Port))
     {
         Serial.println("Failed to open socket to MQTT server");
         m_Status = MQTT::Status::Error;
-        return m_Status;
+        return;
         
     }
     Serial.println("Opened socket to MQTT server");
     m_Status = MQTT::Status::Connecting;
     this->GenerateConnectPacket();
     this->SendData();
-    return m_Status;
-}
-
-MQTT::Status MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port)
-{
-    if(!m_Client.connect(ServerAddress,Port))
-    {
-        Serial.println("Failed to open socket to MQTT server");
-        m_Status = MQTT::Status::Error;
-        return m_Status;
-        
-    }
-    Serial.println("Opened socket to MQTT server");
-    m_Status = MQTT::Status::Connecting;
-    this->GenerateConnectPacket();
-    this->SendData();
-    return m_Status;
 }
 
 void MQTT::MQTTClient::GeneratePingPacket()
@@ -212,6 +204,9 @@ bool MQTT::MQTTClient::InterpretPacket()
         default:
         Serial.print("Packet type error: ");
         Serial.println(PacketType, BIN);
+        m_Status = MQTT::Status::Error;
+        m_Client.stop();
+        return false;
     }
 }
 
@@ -386,3 +381,51 @@ void MQTT::MQTTClient::Subscribe(std::string topic, std::function<void(uint8_t*,
     this->SendData();
 }
 
+std::string MQTT::MQTTClient::ReadServerAddress()
+{
+    EEPROM.begin(MQTT_SERVER_ADDRESS + MQTT_SERVER_SIZE);
+
+    std::string result;
+    for (uint8_t i = 0; i < MQTT_SERVER_SIZE; ++i)
+    {
+        auto byte = EEPROM.read(MQTT_SERVER_ADDRESS + i);
+        if (byte == '\0') break;
+        result +=byte;
+    }
+
+    EEPROM.end();
+    return result;
+}
+
+void MQTT::MQTTClient::WriteServerAddress(std::string address)
+{
+    EEPROM.begin(MQTT_SERVER_ADDRESS + MQTT_SERVER_SIZE);
+    for (uint8_t i = 0; i < MQTT_SERVER_SIZE; ++i)
+    {
+        if (i < address.length())
+        {
+            EEPROM.write(i, address[i]);
+        }
+        else
+        {
+            EEPROM.write(i, '\0');
+        }
+    }
+    EEPROM.end();
+}
+
+ MQTT_PORT_TYPE MQTT::MQTTClient::ReadServerPort()
+ {
+     EEPROM.begin(MQTT_PORT_ADDRESS + sizeof(MQTT_PORT_TYPE));
+     MQTT_PORT_TYPE result;
+     EEPROM.get(MQTT_PORT_ADDRESS, result);
+     EEPROM.end();
+     return result;
+ }
+
+  void MQTT::MQTTClient::WriteServerPort(uint16_t port)
+  {
+     EEPROM.begin(MQTT_PORT_ADDRESS + sizeof(MQTT_PORT_TYPE));
+     EEPROM.put(MQTT_PORT_ADDRESS, port);
+     EEPROM.end();
+  }

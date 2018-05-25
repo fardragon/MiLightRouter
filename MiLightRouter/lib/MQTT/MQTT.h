@@ -17,13 +17,21 @@ namespace MQTT
     {
         public:
         MQTTClient();
-        MQTT::Status Initialize(IPAddress ServerAddress, uint16_t Port);
-        MQTT::Status Initialize(const char *ServerAddress, uint16_t Port);
+        
         MQTT::Status Loop();
 
         void Subscribe(std::string topic, std::function<void(uint8_t*,uint8_t)> handler);
 
+        //EEPROM
+        std::string ReadServerAddress();
+        MQTT_PORT_TYPE ReadServerPort();
+
+        void WriteServerAddress(std::string address);
+        void WriteServerPort(uint16_t port);
+
         private:
+        void Initialize(const char *ServerAddress, MQTT_PORT_TYPE Port);
+
         bool ReceivePacket();
         bool InterpretPacket();
 
@@ -43,6 +51,8 @@ namespace MQTT
         void GeneratePingPacket();
         uint16_t GenerateSubscribePacket(const char *topic, uint8_t length);
         void GeneratePublishAckPacket(const uint16_t &packetID);
+
+
 
 
         private:

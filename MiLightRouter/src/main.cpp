@@ -2,13 +2,20 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <MQTT.h>
-#include "WebPages.h"
+#include <WifiManager.h>
 
-#define _CONNECTIONTIMEOUT 10000
+#include "WebHandler.h"
 
-bool SoftAP = false;
+#define RESET_PIN 4
+
+void test(uint8_t* data, uint8_t length);
+void factoryReset();
+
+WiFiManager wifiManager;
+ 
 MQTT::MQTTClient *mqtt = nullptr;
-ESP8266WebServer webServer;
+ESP8266WebServer *server = nullptr;
+WebHandler *handler = nullptr;
 
 bool sent = false;
 
@@ -18,44 +25,39 @@ void setup()
     Serial.begin(115200);    
     Serial.println();
 
-    auto ConnectionTry = millis();
-    WiFi.hostname("MiLightRouter");
-    WiFi.begin("Livebox-T110E5", "fv215b183");
+    
 
-    Serial.print("Connecting: ");
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        if (millis() - ConnectionTry >= _CONNECTIONTIMEOUT)
-        {
-            SoftAP = true;
-            WiFi.disconnect();
-            Serial.println();
-            Serial.println("Network error. Entering SoftAP mode.");
-            break;
-        }
-        Serial.print(".");
-        delay(500);
-    }
+    pinMode(RESET_PIN, INPUT_PULLUP);
+    attachInterrupt(RESET_PIN, factoryReset, FALLING);
 
-    if (SoftAP)
-    {
-        WiFi.softAPConfig({192,168,1,1},{192,168,1,1},{255,255,255,0});
-        WiFi.softAP("MiLightRouter", "12345678");
-        webServer.on("/",&WebPages::ConfigRoot);
+    wifiManager.autoConnect("MiLight Router", "12345678");
 
+    mqtt = new MQTT::MQTTClient();
+    server = new ESP8266WebServer(80);
+    handler = new WebHandler(server, mqtt);
 
-    }
-    else
-    {
-        Serial.println();
-        Serial.print("Connected, IP address: ");
-        Serial.println(WiFi.localIP());
-        mqtt = new MQTT::MQTTClient();
-        mqtt->Initialize( "192.168.1.5" , 1883);
-    }
-    webServer.begin();   
+    server->on("/", []()-> void { handler->HandleRoot();});
+    server->on("/mqtt", []()-> void { handler->HandleMQTTConfig();});
+    server->on("/restart", []()-> void { ESP.restart();});
+
+    server->begin();
 }
 
+
+
+
+
+void loop() 
+{
+
+    auto result = mqtt->Loop();
+    if ((result == MQTT::Status::Connected) && (!sent))
+    {
+        mqtt->Subscribe("czop", test);
+        sent = true;
+    }
+    server->handleClient();
+}
 
 
 void test(uint8_t* data, uint8_t length)
@@ -69,20 +71,8 @@ void test(uint8_t* data, uint8_t length)
     Serial.println();
 }
 
-void loop() 
+void factoryReset()
 {
-    if (SoftAP)
-    {
-        webServer.handleClient();
-    }
-    else
-    {
-        auto result = mqtt->Loop();
-        if ((result == MQTT::Status::Connected) && (!sent))
-        {
-            mqtt->Subscribe("czop", test);
-            sent = true;
-        }
-        webServer.handleClient();
-    }
+    WiFi.disconnect();
+    ESP.restart();
 }

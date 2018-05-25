@@ -1,11 +1,30 @@
 {
     "terminal.integrated.env.windows": {
-        "PATH": "C:\\Users\\micha\\.platformio\\penv\\Scripts;C:\\Users\\micha\\.platformio\\penv;C:\\ProgramData\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Programy\\Calibre2\\;C:\\Programy\\CMake\\bin;C:\\Programy\\MATLAB\\R2016b\\runtime\\win64;C:\\Programy\\MATLAB\\R2016b\\bin;C:\\Programy\\MATLAB\\R2016b\\polyspace\\bin;C:\\Programy\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files (x86)\\Microsoft SQL Server\\Client SDK\\ODBC\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\DTS\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\Tools\\Binn\\ManagementStudio\\;C:\\Program Files\\dotnet\\;C:\\Program Files\\Git\\cmd;C:\\Users\\micha\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Programy\\Microsoft VS Code\\bin;C:\\ProgramData\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Programy\\Calibre2\\;C:\\Programy\\CMake\\bin;C:\\Programy\\MATLAB\\R2016b\\runtime\\win64;C:\\Programy\\MATLAB\\R2016b\\bin;C:\\Programy\\MATLAB\\R2016b\\polyspace\\bin;C:\\Programy\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files (x86)\\Microsoft SQL Server\\Client SDK\\ODBC\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\DTS\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\Tools\\Binn\\ManagementStudio\\;C:\\Program Files\\dotnet\\;C:\\Program Files\\Git\\cmd;C:\\Users\\micha\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Programy\\Microsoft VS Code\\bin",
+        "PATH": "C:\\Users\\micha\\.platformio\\penv\\Scripts;C:\\Users\\micha\\.platformio\\penv;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\ProgramData\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Programy\\Calibre2\\;C:\\Programy\\CMake\\bin;C:\\Programy\\MATLAB\\R2016b\\runtime\\win64;C:\\Programy\\MATLAB\\R2016b\\bin;C:\\Programy\\MATLAB\\R2016b\\polyspace\\bin;C:\\Programy\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files (x86)\\Microsoft SQL Server\\Client SDK\\ODBC\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\DTS\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\Tools\\Binn\\ManagementStudio\\;C:\\Program Files\\dotnet\\;C:\\Program Files\\Git\\cmd;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Users\\micha\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Programy\\Microsoft VS Code\\bin;C:\\Users\\micha\\AppData\\Local\\Microsoft\\WindowsApps;;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\ProgramData\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Programy\\Calibre2\\;C:\\Programy\\CMake\\bin;C:\\Programy\\MATLAB\\R2016b\\runtime\\win64;C:\\Programy\\MATLAB\\R2016b\\bin;C:\\Programy\\MATLAB\\R2016b\\polyspace\\bin;C:\\Programy\\PuTTY\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files (x86)\\Microsoft SQL Server\\Client SDK\\ODBC\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\DTS\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\140\\Tools\\Binn\\ManagementStudio\\;C:\\Program Files\\dotnet\\;C:\\Program Files\\Git\\cmd;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Users\\micha\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Programy\\Microsoft VS Code\\bin;C:\\Users\\micha\\AppData\\Local\\Microsoft\\WindowsApps;",
         "PLATFORMIO_CALLER": "vscode"
     },
     "files.associations": {
         "array": "cpp",
-        "functional": "cpp"
+        "functional": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "string": "cpp",
+        "typeinfo": "cpp",
+        "*.tcc": "cpp",
+        "cctype": "cpp",
+        "clocale": "cpp",
+        "cmath": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cwchar": "cpp",
+        "exception": "cpp",
+        "initializer_list": "cpp",
+        "iosfwd": "cpp",
+        "limits": "cpp",
+        "new": "cpp",
+        "stdexcept": "cpp"
     },
     "terminal.integrated.env.linux": {
         "PATH": "/home/fardragon/.platformio/penv/bin:/home/fardragon/.platformio/penv:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl",

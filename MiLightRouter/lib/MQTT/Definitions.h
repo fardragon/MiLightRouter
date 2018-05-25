@@ -28,6 +28,12 @@
 #define MQTT_CF_PASSWORD _BV(6)
 #define MQTT_CF_USERNAME _BV(7)
 
+//EEPROM settings
+#define MQTT_SERVER_ADDRESS 0
+#define MQTT_SERVER_SIZE 32
+#define MQTT_PORT_ADDRESS 32
+#define MQTT_PORT_TYPE uint16_t
+
 
 
 namespace MQTT
