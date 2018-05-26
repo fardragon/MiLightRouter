@@ -38,7 +38,7 @@ void setup()
 
     server->on("/", []()-> void { handler->HandleRoot();});
     server->on("/mqtt", []()-> void { handler->HandleMQTTConfig();});
-    server->on("/restart", []()-> void { ESP.restart();});
+    server->on("/restart", []()-> void { handler->HandleRestart(); ESP.restart();});
 
     server->begin();
 }

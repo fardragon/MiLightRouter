@@ -12,6 +12,7 @@ class WebHandler
 
     void HandleRoot();
     void HandleMQTTConfig();
+    void HandleRestart();
     
     private:
     void SendIndex();

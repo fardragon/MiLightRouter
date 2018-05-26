@@ -57,6 +57,26 @@ static const char *MQTT_HTML PROGMEM =
 "</body>"
 "</html>";
 
+static const char *RESTART_HTML PROGMEM =
+"<!DOCTYPE HTML>"
+"<html>"
+"<head>"
+"<meta name = \"viewport\" content = \"width = device-width, initial-scale = 1.0, maximum-scale = 1.0, user-scalable=0\">"
+"<title>MiLight Router Restart</title>"
+"<style>"
+"\"body { background-color: #808080; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }\""
+"</style>"
+"</head>"
+"<body>"
+"<h1>Device restart</h1>"
+"</FORM>"
+"<form action=\"/\">"
+    "<input type=\"submit\" value=\"Back\" />"
+"</form>"
+
+"</body>"
+"</html>";
+
 
 WebHandler::WebHandler(ESP8266WebServer *server, MQTT::MQTTClient *mqtt)
     : m_server(server), m_mqtt(mqtt) {};
@@ -86,6 +106,11 @@ void WebHandler::HandleMQTTConfig()
     this->SendMQTTConfig();
 }
 
+void WebHandler::HandleRestart()
+{
+    this->SendRestart();
+}
+
 void WebHandler::SendIndex()
 {
     m_server->send(200, "text/html", FPSTR(INDEX_HTML));
@@ -111,4 +136,9 @@ void WebHandler::StringReplace(std::string &target, const std::string &remove, c
     {
         target.replace(pos, remove.length(), insert);
     }
+}
+
+void WebHandler::SendRestart()
+{
+    m_server->send(200, "text/html", FPSTR(RESTART_HTML));
 }
