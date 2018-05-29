@@ -46,7 +46,7 @@ static const char *MQTT_HTML PROGMEM =
 " MQTT server address (max 32 characters):<br>"
 "<input type=\"text\" name=\"address\" value=\"__ADDRESS__\"><br>"
 "MQTT server port:<br>"
-"<input type=\"text\" name=\"port\" value=\"__PORT__\"><br>"
+"<input type=\"number\" name=\"port\" value=\"__PORT__\" min=\"1024\" max=\"65535\"><br>"
 "<INPUT type=\"submit\" value=\"Send\">"
 "</P>"
 "</FORM>"

@@ -4,6 +4,8 @@
 #include <MQTT.h>
 #include <WifiManager.h>
 
+#include <Rf24.h>
+
 #include "WebHandler.h"
 
 #define RESET_PIN 4
@@ -16,6 +18,7 @@ WiFiManager wifiManager;
 MQTT::MQTTClient *mqtt = nullptr;
 ESP8266WebServer *server = nullptr;
 WebHandler *handler = nullptr;
+RF24 radio(15,5);
 
 bool sent = false;
 
@@ -25,7 +28,14 @@ void setup()
     Serial.begin(115200);    
     Serial.println();
 
-    
+    if (radio.begin())
+    {
+        Serial.println("Działa");
+    }
+    else
+    {
+        Serial.println("Nie działa");
+    }
 
     pinMode(RESET_PIN, INPUT_PULLUP);
     attachInterrupt(RESET_PIN, factoryReset, FALLING);

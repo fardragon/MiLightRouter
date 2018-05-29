@@ -17,6 +17,7 @@ class WebHandler
     private:
     void SendIndex();
     void SendMQTTConfig();
+    void SendRestart();
 
     void StringReplace(std::string &target, const std::string &remove, const std::string &insert);
 
