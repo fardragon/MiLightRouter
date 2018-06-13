@@ -25,6 +25,11 @@ bool Remote::Send(uint8_t *data, size_t size)
     return true;
 }
 
+void Remote::Resend()
+{
+    this->InternalSend();
+}
+
 void Remote::InternalSend()
 {
     for (uint8_t i = 0; i < NUM_CHANNELS; ++i)

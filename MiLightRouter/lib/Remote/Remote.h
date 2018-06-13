@@ -8,6 +8,7 @@ class Remote
 public:
     Remote(const int radio_ce, const int radio_cs);
     bool Send(uint8_t *data, size_t size);
+    void Resend();
 
 private:
     void InternalSend();
