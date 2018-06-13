@@ -6,20 +6,18 @@
 #include <EEPROM.h>
 
 MQTT::MQTTClient::MQTTClient()
-    : m_Status(MQTT::Status::Disconnected), m_LastActivity(millis()), m_SentPing(false), m_PacketID(0)
+    : m_Status(MQTT::Status::Disconnected), m_LastActivity(millis()), m_PacketID(0), m_SentPing(false)
 {
     EEPROM.begin(48);
 
     auto address = this->ReadServerAddress().c_str();
     auto port = this->ReadServerPort();
     
-    Serial.println(address);
-    Serial.println(port);
     this->Initialize(address, port);
 
 };
 
-void MQTT::MQTTClient::Initialize(const char *ServerAddress, MQTT_PORT_TYPE Port)
+void MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port)
 {
     if(!m_Client.connect(ServerAddress,Port))
     {
@@ -348,9 +346,10 @@ bool MQTT::MQTTClient::Packet_PUBLISH()
         packetID |= *(ptr++);
 
         uint8_t payloadLength = m_BufferLength - (ptr - m_Buffer);
-        uint8_t *payload = static_cast<uint8_t*> (alloca(payloadLength));
+        uint8_t *payload = new uint8_t[payloadLength];
         memcpy(payload, ptr, payloadLength);  
         (*ix).m_Handler(payload,payloadLength);
+        delete[] payload;
         this->GeneratePublishAckPacket(packetID);
         this->SendData();
         return true;
@@ -358,9 +357,10 @@ bool MQTT::MQTTClient::Packet_PUBLISH()
     else
     {
         uint8_t payloadLength = m_BufferLength - (ptr - m_Buffer);
-        uint8_t *payload = static_cast<uint8_t*> (alloca(payloadLength));
+        uint8_t *payload = new uint8_t[payloadLength];
         memcpy(payload, ptr, payloadLength);
         (*ix).m_Handler(payload,payloadLength);
+        delete[] payload;
         return true;
     }   
 }
@@ -397,27 +397,27 @@ std::string MQTT::MQTTClient::ReadServerAddress()
     return result;
 }
 
-void MQTT::MQTTClient::WriteServerAddress(std::string address)
+void MQTT::MQTTClient::WriteServerAddress(const std::string &address)
 {
     EEPROM.begin(MQTT_SERVER_ADDRESS + MQTT_SERVER_SIZE);
     for (uint8_t i = 0; i < MQTT_SERVER_SIZE; ++i)
     {
         if (i < address.length())
         {
-            EEPROM.write(i, address[i]);
+            EEPROM.write(MQTT_SERVER_ADDRESS + i, address[i]);
         }
         else
         {
-            EEPROM.write(i, '\0');
+            EEPROM.write(MQTT_SERVER_ADDRESS + i, '\0');
         }
     }
     EEPROM.end();
 }
 
- MQTT_PORT_TYPE MQTT::MQTTClient::ReadServerPort()
+ uint16_t MQTT::MQTTClient::ReadServerPort()
  {
-     EEPROM.begin(MQTT_PORT_ADDRESS + sizeof(MQTT_PORT_TYPE));
-     MQTT_PORT_TYPE result;
+     EEPROM.begin(MQTT_PORT_ADDRESS + MQTT_PORT_SIZE);
+     uint16_t result;
      EEPROM.get(MQTT_PORT_ADDRESS, result);
      EEPROM.end();
      return result;
@@ -425,7 +425,84 @@ void MQTT::MQTTClient::WriteServerAddress(std::string address)
 
   void MQTT::MQTTClient::WriteServerPort(uint16_t port)
   {
-     EEPROM.begin(MQTT_PORT_ADDRESS + sizeof(MQTT_PORT_TYPE));
+     EEPROM.begin(MQTT_PORT_ADDRESS + MQTT_PORT_SIZE);
      EEPROM.put(MQTT_PORT_ADDRESS, port);
      EEPROM.end();
   }
+
+  bool MQTT::MQTTClient::ReadUseCredentials()
+  {
+      EEPROM.begin(MQTT_USE_CREDENTIALS_ADDRESS + MQTT_USE_CREDENTIALS_SIZE);
+      bool result;
+      EEPROM.get(MQTT_USE_CREDENTIALS_ADDRESS, result);
+      EEPROM.end();
+      return result;
+  }
+
+  void MQTT::MQTTClient::WriteUseCredentials(bool use)
+  {
+      EEPROM.begin(MQTT_USE_CREDENTIALS_ADDRESS + MQTT_USE_CREDENTIALS_SIZE);
+      EEPROM.put(MQTT_USE_CREDENTIALS_ADDRESS, use);
+      EEPROM.end();
+  }
+
+  std::string MQTT::MQTTClient::ReadUsername()
+  {
+      EEPROM.begin(MQTT_USERNAME_ADDRESS+MQTT_USERNAME_SIZE);
+      std::string result;
+      for (uint8_t i = 0; i < MQTT_USERNAME_SIZE; ++i)
+      {
+          auto byte = EEPROM.read(MQTT_USERNAME_ADDRESS + i);
+          if (byte == '\0') break;
+          result += byte;
+      }
+      EEPROM.end();
+      return result;
+  }
+
+  void MQTT::MQTTClient::WriteUsername(const std::string &username)
+  {
+    EEPROM.begin(MQTT_USERNAME_ADDRESS+MQTT_USERNAME_SIZE);
+    for (uint8_t i = 0; i < MQTT_USERNAME_SIZE; ++i)
+    {
+        if (i < username.length())
+        {
+            EEPROM.write(MQTT_USERNAME_ADDRESS + i, username[i]);
+        }
+        else
+        {
+            EEPROM.write(MQTT_USERNAME_ADDRESS + i, '\0');
+        }
+    }
+    EEPROM.end();
+  }
+
+   std::string MQTT::MQTTClient::ReadPassword()
+   {
+       EEPROM.begin(MQTT_PASSWORD_ADDRESS + MQTT_PASSWORD_SIZE);
+       std::string result;
+       for (uint8_t i = 0; i < MQTT_PASSWORD_SIZE; ++i)
+       {
+           auto byte = EEPROM.read(MQTT_PASSWORD_ADDRESS + i);
+           if (byte == '\0') break;
+           result += byte;
+       }
+       return result;
+   }
+
+   void MQTT::MQTTClient::WritePassword(const std::string &password)
+   {
+    EEPROM.begin(MQTT_PASSWORD_ADDRESS+MQTT_PASSWORD_SIZE);
+    for (uint8_t i = 0; i < MQTT_PASSWORD_SIZE; ++i)
+    {
+        if (i < password.length())
+        {
+            EEPROM.write(MQTT_PASSWORD_ADDRESS + i, password[i]);
+        }
+        else
+        {
+            EEPROM.write(MQTT_PASSWORD_ADDRESS + i, '\0');
+        }
+    }
+    EEPROM.end();
+   }

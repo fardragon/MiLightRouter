@@ -13,11 +13,13 @@ class WebHandler
     void HandleRoot();
     void HandleMQTTConfig();
     void HandleRestart();
+    void HandleMilight();
     
     private:
     void SendIndex();
     void SendMQTTConfig();
     void SendRestart();
+    void SendMilight();
 
     void StringReplace(std::string &target, const std::string &remove, const std::string &insert);
 

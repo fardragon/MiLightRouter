@@ -24,13 +24,19 @@ namespace MQTT
 
         //EEPROM
         std::string ReadServerAddress();
-        MQTT_PORT_TYPE ReadServerPort();
+        uint16_t ReadServerPort();
+        bool ReadUseCredentials();
+        std::string ReadUsername();
+        std::string ReadPassword();
 
-        void WriteServerAddress(std::string address);
+        void WriteServerAddress(const std::string &address);
         void WriteServerPort(uint16_t port);
+        void WriteUseCredentials(bool use);
+        void WriteUsername(const std::string &username);
+        void WritePassword(const std::string &password);
 
         private:
-        void Initialize(const char *ServerAddress, MQTT_PORT_TYPE Port);
+        void Initialize(const char *ServerAddress, uint16_t Port);
 
         bool ReceivePacket();
         bool InterpretPacket();

@@ -32,8 +32,13 @@
 #define MQTT_SERVER_ADDRESS 0
 #define MQTT_SERVER_SIZE 32
 #define MQTT_PORT_ADDRESS 32
-#define MQTT_PORT_TYPE uint16_t
-
+#define MQTT_PORT_SIZE 2
+#define MQTT_USE_CREDENTIALS_ADDRESS 34
+#define MQTT_USE_CREDENTIALS_SIZE 1
+#define MQTT_USERNAME_ADDRESS 35
+#define MQTT_USERNAME_SIZE 32
+#define MQTT_PASSWORD_ADDRESS 67
+#define MQTT_PASSWORD_SIZE 32
 
 
 namespace MQTT
@@ -49,7 +54,7 @@ namespace MQTT
     struct Subscribtion
     {
         Subscribtion(std::string Topic, std::function<void(uint8_t*,uint8_t)> Handler, uint16_t ID)
-            : m_Topic(Topic), m_Handler(Handler), m_ID(ID), m_Ack(false)
+            : m_Topic(Topic), m_Handler(Handler), m_Ack(false),  m_ID(ID)
             {
             };
         std::string m_Topic;
