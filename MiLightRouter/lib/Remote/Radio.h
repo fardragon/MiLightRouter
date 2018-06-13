@@ -1,5 +1,5 @@
-#ifndef __REMOTE_H__
-#define __REMOTE_H__
+#ifndef __RADIO_H__
+#define __RADIO_H__
 
 #include <RF24.h>
 #include <Arduino.h>

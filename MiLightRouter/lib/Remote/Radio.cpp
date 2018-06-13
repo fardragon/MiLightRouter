@@ -250,7 +250,27 @@ bool Radio::TransmitData(const uint8_t channel)
     return 0;
 }
 
+#define CRC_POLY 0x8408
+
 uint16_t Radio::CalcCRC(uint8_t *data, size_t length)
 {
+    uint16_t state = 0;
+    for (size_t i = 0; i < length; i++) 
+    {
+        uint8_t byte = data[i];
+        for (int j = 0; j < 8; j++) 
+        {
+            if ((byte ^ state) & 0x01) 
+            {
+            state = (state >> 1) ^ CRC_POLY;
+            }
+            else 
+            {
+                state = state >> 1;
+            }
 
+            byte = byte >> 1;
+        }
+    }
+    return state;
 }
