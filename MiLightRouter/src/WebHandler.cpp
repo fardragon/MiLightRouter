@@ -129,8 +129,8 @@ static const char *MILIGHT_HTML =
 "</html>";
 
 
-WebHandler::WebHandler(ESP8266WebServer *server, MQTT::MQTTClient *mqtt)
-    : m_server(server), m_mqtt(mqtt) {};
+WebHandler::WebHandler(ESP8266WebServer *server, MQTT::MQTTClient *mqtt, Milight *milight)
+    : m_server(server), m_mqtt(mqtt), m_milight(milight) {};
 
 void WebHandler::HandleRoot()
 {
@@ -192,6 +192,11 @@ void WebHandler::HandleMilight()
         {
             std::string temp = m_server->arg("group").c_str();
             Serial.println(temp.c_str());
+            auto group_s = m_server->arg("group");
+            auto group = std::strtoul(group_s.c_str(), nullptr, 10);
+            if (group == 1) for (uint8_t i = 0; i < 5; ++i) m_milight->TestOn();   
+            if (group == 2) for (uint8_t i = 0; i < 5; ++i) m_milight->TestOff();   
+                
         }
     }
     this->SendMilight();

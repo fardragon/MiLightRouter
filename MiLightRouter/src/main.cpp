@@ -2,7 +2,6 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <MQTT.h>
-#include <Remote.h>
 #include <WiFiManager.h>
 
 #include <RF24.h>
@@ -22,6 +21,7 @@ WiFiManager wifiManager;
 MQTT::MQTTClient *mqtt = nullptr;
 ESP8266WebServer *server = nullptr;
 WebHandler *handler = nullptr;
+Milight *milight = nullptr;
 
 bool sent = false;
 
@@ -41,7 +41,8 @@ void setup()
 
     mqtt = new MQTT::MQTTClient();
     server = new ESP8266WebServer(80);
-    handler = new WebHandler(server, mqtt);
+    milight = new Milight(NRF_CE, NRF_CS);
+    handler = new WebHandler(server, mqtt, milight);
 
     server->on("/", []()-> void { handler->HandleRoot();});
     server->on("/mqtt", []()-> void { handler->HandleMQTTConfig();});
@@ -68,6 +69,7 @@ void loop()
         sent = true;
     }
     server->handleClient();
+    if (milight->Avalaible()) milight->Receive();
 }
 
 

@@ -2,7 +2,9 @@
 #define __MILIGHT_H__
 
 #include <Arduino.h>
-#include "Remote.h"
+#include "MiLightRadio.h"
+#include <RF24.h>
+#include "PL1167_nRF24.h"
 
 
 class Milight
@@ -10,15 +12,21 @@ class Milight
     public:
     Milight(const int radio_ce, const int radio_cs);
 
-
-    void TestPair();
+    bool Avalaible();
+    void Receive();
+    
+    void TestOn();
+    void TestOff();
 
     private:
 
     void SendCommand(uint8_t command[7]);
 
+
     private:
-    Remote m_remote;
+    RF24 *m_radio;
+    PL1167_nRF24 *m_abstract;
+    MiLightRadio *m_remote;
     uint8_t m_packetID;
 
 };
