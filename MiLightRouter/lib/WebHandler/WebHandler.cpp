@@ -2,7 +2,7 @@
 
 
 #include <WString.h>
-
+#include <Settings.h>
 
 static const char *INDEX_HTML PROGMEM =
 "<!DOCTYPE HTML>"
@@ -22,11 +22,15 @@ static const char *INDEX_HTML PROGMEM =
 "</form>"
 
 "<form action=\"/milight\">"
-    "<input type=\"submit\" value=\"Cofigure Milight\" />"
+    "<input type=\"submit\" value=\"Control Milight\" />"
 "</form>"
 
 "<form action=\"/restart\">"
     "<input type=\"submit\" value=\"Restart\" />"
+"</form>"
+
+"<form action=\"/factory-reset\">"
+    "<input type=\"submit\" value=\"Factory reset\" />"
 "</form>"
 
 "</body>"
@@ -61,7 +65,10 @@ static const char *MQTT_HTML PROGMEM =
 "MQTT Password: <br>"
 "<input type=\"password\" name=\"username\" value=\"__PASSWORD__\"><br>"
 
-"<input type=\"submit\" value=\"Send\">"
+"MQTT Topic: <br>"
+"<input type=\"text\" name=\"topic\" value=\"__TOPIC__\"><br>"
+
+"<input type=\"submit\" value=\"Save\">"
 
 
 "</P>"
@@ -98,24 +105,48 @@ static const char *MILIGHT_HTML =
 "<html>"
 "<head>"
 "<meta name = \"viewport\" content = \"width = device-width, initial-scale = 1.0, maximum-scale = 1.0, user-scalable=0\">"
-"<title>MiLight Router Restart</title>"
+"<title>MiLight Control</title>"
 "<style>"
 "\"body { background-color: #808080; font-family: Arial, Helvetica, Sans-Serif; Color: #000000; }\""
 "</style>"
 "</head>"
 "<body>"
-"<h1>Milight settings</h1>"
+"<h1>Milight control</h1>"
 
 "<FORM action=\"/milight\" method=\"post\">"
 "<P>"
-"Group select:<br>"
+"Button select:<br>"
 
-"<input type=\"radio\" name=\"group\" value=\"1\"> 1<br>"
-"<input type=\"radio\" name=\"group\" value=\"2\"> 2<br>"
-"<input type=\"radio\" name=\"group\" value=\"3\"> 3<br>"
-"<input type=\"radio\" name=\"group\" value=\"4\"> 4<br>"
 
-"<input type=\"submit\" value=\"Pair\">"
+"<input type=\"radio\" name=\"button\" value=\"1\"> All ON<br>"
+"<input type=\"radio\" name=\"button\" value=\"2\"> All OFF<br>"
+"<input type=\"radio\" name=\"button\" value=\"16\"> All WHITE<br>"
+"<input type=\"radio\" name=\"button\" value=\"3\"> Group 1 ON<br>"
+"<input type=\"radio\" name=\"button\" value=\"4\"> Group 1 OFF<br>"
+"<input type=\"radio\" name=\"button\" value=\"21\"> Group 1 PAIR<br>"
+"<input type=\"radio\" name=\"button\" value=\"17\"> Group 1 UNAPIR/WHITE<br>"
+"<input type=\"radio\" name=\"button\" value=\"5\"> Group 2 ON<br>"
+"<input type=\"radio\" name=\"button\" value=\"6\"> Group 2 OFF<br>"
+"<input type=\"radio\" name=\"button\" value=\"22\"> Group 2 PAIR<br>"
+"<input type=\"radio\" name=\"button\" value=\"18\"> Group 2 UNAPIR/WHITE<br>"
+"<input type=\"radio\" name=\"button\" value=\"7\"> Group 3 ON<br>"
+"<input type=\"radio\" name=\"button\" value=\"8\"> Group 3 OFF<br>"
+"<input type=\"radio\" name=\"button\" value=\"23\"> Group 3 PAIR<br>"
+"<input type=\"radio\" name=\"button\" value=\"19\"> Group 3 UNAPIR/WHITE<br>"
+"<input type=\"radio\" name=\"button\" value=\"9\"> Group 4 ON<br>"
+"<input type=\"radio\" name=\"button\" value=\"10\"> Group 4 OFF<br>"
+"<input type=\"radio\" name=\"button\" value=\"24\"> Group 4 PAIR<br>"
+"<input type=\"radio\" name=\"button\" value=\"20\"> Group 4 UNAPIR/WHITE<br>"
+"<input type=\"radio\" name=\"button\" value=\"11\"> Speed plus<br>"
+"<input type=\"radio\" name=\"button\" value=\"12\"> Speed minus<br>"
+"<input type=\"radio\" name=\"button\" value=\"13\"> Mode<br>"
+"<input type=\"radio\" name=\"button\" value=\"14\"> Brightness<br>"
+"<input type=\"radio\" name=\"button\" value=\"15\"> Colour<br>"
+
+"Color:<br>"
+"<input type=\"number\" name=\"color\" value=\"0\" min=\"0\" max=\"255\"><br>"
+
+"<input type=\"submit\" value=\"Send\">"
 
 
 "</P>"
@@ -129,8 +160,9 @@ static const char *MILIGHT_HTML =
 "</html>";
 
 
-WebHandler::WebHandler(ESP8266WebServer *server, MQTT::MQTTClient *mqtt, Milight *milight)
-    : m_server(server), m_mqtt(mqtt), m_milight(milight) {};
+
+WebHandler::WebHandler(ESP8266WebServer *server, Milight *milight)
+    : m_server(server), m_milight(milight) {};
 
 void WebHandler::HandleRoot()
 {
@@ -144,36 +176,41 @@ void WebHandler::HandleMQTTConfig()
         if (m_server->hasArg("address"))
         {
             auto address = m_server->arg("address");
-            m_mqtt->WriteServerAddress(address.c_str());
+            eeprom_settings.WriteServerAddress(address.c_str());
         }
 
         if (m_server->hasArg("port"))
         {
             auto port_s = m_server->arg("port");
             auto port = std::strtoul(port_s.c_str(),nullptr, 10);
-            m_mqtt->WriteServerPort(port);
+            eeprom_settings.WriteServerPort(port);
         }
         if (m_server->hasArg("credentials"))
         {
             auto useCredentials = m_server->arg("credentials");
             if (useCredentials == "yes")
             {
-                m_mqtt->WriteUseCredentials(true);
+                eeprom_settings.WriteUseCredentials(true);
             }   
             else if (useCredentials == "no")
             {
-                m_mqtt->WriteUseCredentials(false);
+                eeprom_settings.WriteUseCredentials(false);
             }
         }
         if (m_server->hasArg("username"))
         {
             std::string temp = m_server->arg("username").c_str();
-            m_mqtt->WriteUsername(temp);
+            eeprom_settings.WriteUsername(temp);
         }
         if (m_server->hasArg("password"))
         {
             std::string temp = m_server->arg("password").c_str();
-            m_mqtt->WriteUsername(temp);
+            eeprom_settings.WriteUsername(temp);
+        }
+        if (m_server->hasArg("topic"))
+        {
+            std::string temp = m_server->arg("topic").c_str();
+            eeprom_settings.WriteMQTTTopic(temp);
         }
     }
     this->SendMQTTConfig();
@@ -188,15 +225,30 @@ void WebHandler::HandleMilight()
 {
     if (m_server->args() > 0)
     {
-        if (m_server->hasArg("group"))
+        if (m_server->hasArg("button"))
         {
-            std::string temp = m_server->arg("group").c_str();
-            Serial.println(temp.c_str());
-            auto group_s = m_server->arg("group");
-            auto group = std::strtoul(group_s.c_str(), nullptr, 10);
-            if (group == 1) for (uint8_t i = 0; i < 5; ++i) m_milight->TestOn();   
-            if (group == 2) for (uint8_t i = 0; i < 5; ++i) m_milight->TestOff();   
-                
+            auto button_s = m_server->arg("button");
+            auto button = std::strtoul(button_s.c_str(), nullptr, 10);
+            MilightCommand cmd = static_cast<MilightCommand>(button);
+
+            if (cmd == MilightCommand::COLOR)
+            {
+                if (m_server->hasArg("color"))
+                {
+                    auto color_s = m_server->arg("color");
+                    auto color = std::strtoul(color_s.c_str(), nullptr, 10);
+                    m_milight->send_command(cmd, color, 0);
+                }
+            }
+            else if (cmd == MilightCommand::BRIGHTNESS)
+            {
+
+            }
+            else
+            {
+                m_milight->send_command(cmd, 0, 0);
+            }
+            
         }
     }
     this->SendMilight();
@@ -215,14 +267,14 @@ void WebHandler::SendMilight()
 void WebHandler::SendMQTTConfig()
 {
     std::string page (String(FPSTR(MQTT_HTML)).c_str());
-    this->StringReplace(page, "__ADDRESS__", m_mqtt->ReadServerAddress());
+    this->StringReplace(page, "__ADDRESS__", eeprom_settings.ReadServerAddress());
 
     char buffer[5];
-    sprintf(buffer, "%d", m_mqtt->ReadServerPort());
+    sprintf(buffer, "%d", eeprom_settings.ReadServerPort());
 
     this->StringReplace(page, "__PORT__", std::string(buffer));
 
-    bool use_cred = m_mqtt->ReadUseCredentials();
+    bool use_cred = eeprom_settings.ReadUseCredentials();
     if (use_cred)
     {
         this->StringReplace(page, "__USE__CRED__", "checked");
@@ -234,8 +286,9 @@ void WebHandler::SendMQTTConfig()
         this->StringReplace(page, "__DONT__USE__CRED", "checked");
     }
 
-    this->StringReplace(page, "__USERNAME__", m_mqtt->ReadUsername());
-    this->StringReplace(page, "__PASSWORD__", m_mqtt->ReadPassword());
+    this->StringReplace(page, "__USERNAME__", eeprom_settings.ReadUsername());
+    this->StringReplace(page, "__PASSWORD__", eeprom_settings.ReadPassword());
+    this->StringReplace(page, "__TOPIC__", eeprom_settings.ReadMQTTTopic());
 
     m_server->send(200, "text/html", page.c_str());
 }

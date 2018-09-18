@@ -1,91 +1,152 @@
 #include "Milight.h"
 
-Milight::Milight(const int radio_ce, const int radio_cs)
-    : m_packetID(0x50)
+Milight::Milight(const uint8_t RF24_CE, const uint8_t RF24_CS, uint16_t device_id)
+    : m_radio(RF24_CE, RF24_CS), m_packet_id(0)
 {
-    m_radio = new RF24(radio_ce, radio_cs);
-    m_abstract = new PL1167_nRF24(*m_radio);
-    m_remote = new MiLightRadio(*m_abstract);
-    auto ret = m_remote->begin();
-    if (ret != 0) Serial.println("NRF24 error!");
+    m_device_id[0] = device_id >> 8;
+    m_device_id[1] = device_id & 0x00FF;
 }
 
-void Milight::TestOn()
+uint8_t Milight::init()
 {
-    Serial.println("Test on command");
-    uint8_t packet[7] = {0xb0, 0x5e, 0x03, 0x37, 0xb9, 0x03, m_packetID++};
-
-    this->SendCommand(packet);
-
-    packet[5] = 0x13;
-    packet[6] = m_packetID++;
-
-    this->SendCommand(packet);
-
-    delay(300);
-
-    this->SendCommand(packet);
-
-    delay(300);
-
-    this->SendCommand(packet);
-
-    delay(300);
-
-    this->SendCommand(packet);
-
+    return m_radio.begin();
 }
 
-void Milight::TestOff()
+void Milight::send_command(const MilightCommand command, uint8_t color, uint8_t brightess)
 {
-    Serial.println("Test on command");
-    uint8_t packet[7] = {0xb0, 0x5e, 0x03, 0x37, 0xb9, 0x02, m_packetID++};
-
-    this->SendCommand(packet);
-
-    packet[5] = 0x12;
-    packet[6] = m_packetID++;
-
-    this->SendCommand(packet);
-
-    delay(300);
-
-    this->SendCommand(packet);
-}
-
-void Milight::SendCommand(uint8_t command[7])
-{
-    Serial.print("Send: ");
-    for (uint8_t i = 0; i < 7; i++) 
+    if (command <= MilightCommand::COLOR)
     {
-       Serial.print(command[i], HEX);
-       Serial.print(' ');
-    }   
-    Serial.println();
-
-    m_remote->write(command, sizeof(command));
-    delay(50);
-
-    for (uint8_t i = 0; i < 50; ++i)
+        uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], color, brightess, static_cast<uint8_t>(command), m_packet_id++};
+        _send_command(data, 7);
+    }
+    else
     {
-        m_remote->resend();
-        delay(1);
+        switch (command)
+        {
+        case MilightCommand::ALL_WHITE:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], color, brightess, 0x01, m_packet_id++};
+            _send_command(data, 7);
+            data[5] = 0x11;
+            data[6] = m_packet_id++;
+            _send_command(data, 7);
+            break;
+        }
+        case MilightCommand::GROUP_1_UNPAIR_WHITE:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], color, brightess, 0x03, m_packet_id++};
+            _send_command(data, 7);
+            data[5] = 0x13;
+            data[6] = m_packet_id++;
+            _send_command(data, 7);
+            break;
+        }
+        case MilightCommand::GROUP_2_UNPAIR_WHITE:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], color, brightess, 0x05, m_packet_id++};
+            _send_command(data, 7);
+            data[5] = 0x15;
+            data[6] = m_packet_id++;
+            _send_command(data, 7);
+            break;
+        }
+        case MilightCommand::GROUP_3_UNPAIR_WHITE:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], color, brightess, 0x07, m_packet_id++};
+            _send_command(data, 7);
+            data[5] = 0x17;
+            data[6] = m_packet_id++;
+            _send_command(data, 7);
+            break;
+        }
+        case MilightCommand::GROUP_4_UNPAIR_WHITE:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], color, brightess, 0x09, m_packet_id++};
+            _send_command(data, 7);
+            data[5] = 0x19;
+            data[6] = m_packet_id++;
+            _send_command(data, 7);
+            break;
+        }
+        case MilightCommand::GROUP_1_PAIR:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], 0x1, 0x1, 0x03, m_packet_id++};
+            _send_command(data, 7);
+
+            for (uint8_t i = 0; i < 4; ++i)
+            {
+                data[6] = m_packet_id++;
+                _send_command(data, 7);
+                delay(100);
+            }
+            break;
+        }
+        case MilightCommand::GROUP_2_PAIR:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], 0x2, 0x2, 0x05, m_packet_id++};
+            _send_command(data, 7);
+
+            for (uint8_t i = 0; i < 4; ++i)
+            {
+                data[6] = m_packet_id++;
+                _send_command(data, 7);
+                delay(100);
+            }
+            break;
+        }
+        case MilightCommand::GROUP_3_PAIR:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], 0x3, 0x3, 0x07, m_packet_id++};
+            _send_command(data, 7);
+
+            for (uint8_t i = 0; i < 4; ++i)
+            {
+                data[6] = m_packet_id++;
+                _send_command(data, 7);
+                delay(100);
+            }
+            break;
+        }
+        case MilightCommand::GROUP_4_PAIR:
+        {
+            uint8_t data[7] = {0xB0, m_device_id[0], m_device_id[1], 0x4, 0x4, 0x09, m_packet_id++};
+            _send_command(data, 7);
+
+            for (uint8_t i = 0; i < 4; ++i)
+            {
+                data[6] = m_packet_id++;
+                _send_command(data, 7);
+                delay(100);
+            }
+            break;
+        }
+        }
     }
 }
-bool Milight::Avalaible()
+
+void Milight::_send_command(uint8_t data[], uint8_t data_size)
 {
-    return m_remote->available();
+    Serial.println("send_command");
+    m_radio.write(data, data_size);
+
+    for (uint8_t i = 0; i < 50; ++i)
+        m_radio.resend();
 }
 
-void Milight::Receive()
+void Milight::receive()
 {
-    Serial.println();
-    uint8_t packet[7];
-    size_t size = sizeof(packet);
-    m_remote->read(packet, size);
-    for (uint8_t i = 0; i < 7; i++) 
+    if (m_radio.available())
     {
-       Serial.print(packet[i], HEX);
-       Serial.print(' ');
-    }   
+        uint8_t buffer[10];
+        size_t size = sizeof(buffer);
+        m_radio.read(buffer, size);
+        Serial.print("Data received: ");
+        for (uint8_t i = 0; i < size; ++i)
+        {
+            Serial.print(buffer[i], 16);
+            Serial.print(" ");    
+        }
+        Serial.printf("Brightness: %u\n\r", buffer[4]);
+        Serial.println();
+    }
 }

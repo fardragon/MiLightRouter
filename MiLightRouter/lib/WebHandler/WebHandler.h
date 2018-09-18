@@ -2,14 +2,13 @@
 #define __WEBHANDLER__
 
 #include <ESP8266WebServer.h>
-#include <MQTT.h>
 #include <string>
 #include <Milight.h>
 
 class WebHandler
 {
     public:
-    WebHandler(ESP8266WebServer *server, MQTT::MQTTClient *mqtt, Milight *milight);
+    WebHandler(ESP8266WebServer *server, Milight *milight);
 
     void HandleRoot();
     void HandleMQTTConfig();
@@ -26,7 +25,6 @@ class WebHandler
 
     private:
     ESP8266WebServer *m_server;
-    MQTT::MQTTClient *m_mqtt;
     Milight *m_milight;
 };
 

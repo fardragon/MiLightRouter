@@ -1,23 +1,13 @@
-/*
- * PL1167_nRF24.h
- *
- *  Created on: 29 May 2015
- *      Author: henryk
- */
-
-#ifdef ARDUINO
 #include "Arduino.h"
-#endif
+#include <RF24.h>
 
-#include "AbstractPL1167.h"
-#include "RF24.h"
 
 #ifndef PL1167_NRF24_H_
 #define PL1167_NRF24_H_
 
-class PL1167_nRF24 : public AbstractPL1167 {
+class PL1167_nRF24 {
   public:
-    PL1167_nRF24(RF24 &radio);
+    PL1167_nRF24(RF24& radio);
     int open();
     int setPreambleLength(uint8_t preambleLength);
     int setSyncword(uint16_t syncword0, uint16_t syncword3);
