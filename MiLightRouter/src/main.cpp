@@ -98,7 +98,7 @@ void message_callback(uint8_t* data, uint8_t length)
     
     char *part = nullptr;
     part = strtok(c_str, " ");
-
+    //TODO
     while (part)
     {
         Serial.println(part);

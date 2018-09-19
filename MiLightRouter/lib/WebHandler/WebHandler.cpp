@@ -49,7 +49,7 @@ static const char *MQTT_HTML PROGMEM =
 "<body>"
 "<h1>MiLight Router</h1>"
 
-"<FORM action=\"/mqtt\" method=\"post\">"
+"<FORM action=\"/mqtt\" method=\"post\" accept-charset=\"UTF-8\">"
 "<P>"
 " MQTT server address (max 32 characters):<br>"
 "<input type=\"text\" name=\"address\" value=\"__ADDRESS__\"><br>"
@@ -60,13 +60,13 @@ static const char *MQTT_HTML PROGMEM =
 "<input type=\"radio\" name=\"credentials\" value=\"no\" __DONT__USE__CRED> Don't use credentials<br>"
 
 "MQTT Username: <br>"
-"<input type=\"text\" name=\"username\" value=\"__USERNAME__\"><br>"
+"<input type=\"text\" name=\"username\" value=\"__USERNAME__\" maxlength=\"__USR_SIZE__\"><br>"
 
 "MQTT Password: <br>"
-"<input type=\"password\" name=\"username\" value=\"__PASSWORD__\"><br>"
+"<input type=\"password\" name=\"password\" value=\"__PASSWORD__\" maxlength=\"__PWD_SIZE__\"><br>"
 
 "MQTT Topic: <br>"
-"<input type=\"text\" name=\"topic\" value=\"__TOPIC__\"><br>"
+"<input type=\"text\" name=\"topic\" value=\"__TOPIC__\" maxlength=\"__TPC_SIZE__\"><br>"
 
 "<input type=\"submit\" value=\"Save\">"
 
@@ -183,7 +183,7 @@ void WebHandler::HandleMQTTConfig()
         {
             auto port_s = m_server->arg("port");
             auto port = std::strtoul(port_s.c_str(),nullptr, 10);
-            eeprom_settings.WriteServerPort(port);
+            if (port != 0) eeprom_settings.WriteServerPort(port);
         }
         if (m_server->hasArg("credentials"))
         {
@@ -237,7 +237,7 @@ void WebHandler::HandleMilight()
                 {
                     auto color_s = m_server->arg("color");
                     auto color = std::strtoul(color_s.c_str(), nullptr, 10);
-                    m_milight->send_command(cmd, color, 0);
+                    if (color != 0) m_milight->send_command(cmd, color, 0);
                 }
             }
             else if (cmd == MilightCommand::BRIGHTNESS)
@@ -289,6 +289,8 @@ void WebHandler::SendMQTTConfig()
     this->StringReplace(page, "__USERNAME__", eeprom_settings.ReadUsername());
     this->StringReplace(page, "__PASSWORD__", eeprom_settings.ReadPassword());
     this->StringReplace(page, "__TOPIC__", eeprom_settings.ReadMQTTTopic());
+    //TODO
+    //this->StringReplace(page, "__USR_SIZE__", MQTT_USERNAME_SIZE);
 
     m_server->send(200, "text/html", page.c_str());
 }
