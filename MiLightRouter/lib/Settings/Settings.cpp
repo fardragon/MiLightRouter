@@ -110,6 +110,7 @@ std::string Settings::ReadPassword()
             break;
         result += byte;
     }
+    EEPROM.end();
     return result;
 }
 
@@ -141,6 +142,7 @@ std::string Settings::ReadMQTTTopic()
             break;
         result += byte;
     }
+    EEPROM.end();
     return result;
 }
 
@@ -161,5 +163,33 @@ void Settings::WriteMQTTTopic(const std::string &topic)
     EEPROM.end();
 }
 
+
+uint16_t Settings::ReadMilightDeviceID()
+{
+    EEPROM.begin(MILIGHT_DEVICE_ID_ADDRESS + MILIGHT_DEVICE_ID_SIZE);
+    uint16_t result = EEPROM.get(MILIGHT_DEVICE_ID_ADDRESS, result);
+    EEPROM.end();
+    return result;
+
+}
+uint16_t Settings::ReadMilightDetectedID()
+{
+    EEPROM.begin(MILIGHT_DETECTED_ID_ADDRESS + MILIGHT_DETECTED_ID_SIZE);
+    uint16_t result = EEPROM.get(MILIGHT_DETECTED_ID_ADDRESS, result);
+    EEPROM.end();
+    return result;
+}
+void Settings::WriteMilightDeviceID(const uint16_t id)
+{
+    EEPROM.begin(MILIGHT_DEVICE_ID_ADDRESS + MILIGHT_DEVICE_ID_SIZE);
+    EEPROM.put(MILIGHT_DEVICE_ID_ADDRESS, id);
+    EEPROM.end();
+}
+void Settings::WriteMilightDetectedID(const uint16_t id)
+{
+    EEPROM.begin(MILIGHT_DETECTED_ID_ADDRESS + MILIGHT_DETECTED_ID_SIZE);
+    EEPROM.put(MILIGHT_DETECTED_ID_ADDRESS, id);
+    EEPROM.end();
+}
 
 Settings eeprom_settings;

@@ -14,12 +14,18 @@ class WebHandler
     void HandleMQTTConfig();
     void HandleRestart();
     void HandleMilight();
+    void HandleMilightError();
+    void HandleMilightCfg();
+    void HandleFactoryRestart();
+    
     
     private:
     void SendIndex();
     void SendMQTTConfig();
     void SendRestart();
     void SendMilight();
+    void SendMilightErr();
+    void SendMilightCfg();
 
     void StringReplace(std::string &target, const std::string &remove, const std::string &insert);
 

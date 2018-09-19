@@ -18,15 +18,15 @@ class NRF24MiLightRadio
     int configure();
 
   private:
-    RF24 _radio;
-    PL1167_nRF24 _pl1167;
-    uint32_t _prev_packet_id;
+    RF24 m_radio;
+    PL1167_nRF24 m_pl1167;
+    uint32_t m_prev_packet_id;
 
-    uint8_t _packet[10];
-    uint8_t _out_packet[10];
-    bool _waiting;
-    int _dupes_received;
-    const uint8_t _channels[3] = {9, 40, 71};
+    uint8_t m_packet[10];
+    uint8_t m_out_packet[10];
+    bool m_waiting;
+    int m_dupes_received;
+    const uint8_t m_channels[3] = {9, 40, 71};
 };
 
 #endif

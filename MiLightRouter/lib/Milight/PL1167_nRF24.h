@@ -22,25 +22,20 @@ class PL1167_nRF24
   static uint8_t reverse_bits(uint8_t data);
 
   private:
-  RF24 &_radio;
+  RF24 &m_radio;
 
-  bool _crc;
-  uint8_t _preambleLength = 1;
-  uint16_t _syncword0 = 0, _syncword3 = 0;
-  uint8_t _syncwordLength = 4;
-  uint8_t _trailerLength = 4;
-  uint8_t _maxPacketLength = 8;
+  bool m_crc;
+  uint16_t m_syncword0, m_syncword3;
+  uint8_t m_syncwordLength;
+  uint8_t m_maxPacketLength;
 
-  uint8_t _channel = 0;
+  uint8_t m_channel;
 
-  uint8_t _nrf_pipe[5];
-  uint8_t _nrf_pipe_length;
+  uint8_t m_nrf_pipe[5];
 
-  uint8_t _packet_length = 0;
-  uint8_t _receive_length = 0;
-  uint8_t _preamble = 0;
-  uint8_t _packet[32];
-  bool _received = false;
+  uint8_t m_packet_length, m_receive_length;
+  uint8_t m_packet[32];
+  bool m_received;
 
   int recalc_parameters();
   int internal_receive();

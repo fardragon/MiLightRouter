@@ -38,7 +38,7 @@ enum class MilightCommand
 class Milight
 {
     public:
-    Milight(const uint8_t RF24_CE, const uint8_t RF24_CS, uint16_t device_id);
+    Milight(const uint8_t RF24_CE, const uint8_t RF24_CS);
     uint8_t init();
 
     void send_command(const MilightCommand command, uint8_t color, uint8_t brightess);
@@ -58,6 +58,8 @@ class Milight
 
 };
 
+MilightCommand string_to_command(const std::string str);
+uint8_t level_to_brightness(const uint8_t level);
 
 
 #endif

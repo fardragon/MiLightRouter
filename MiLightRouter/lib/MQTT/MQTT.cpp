@@ -11,8 +11,18 @@ MQTT::MQTTClient::MQTTClient()
 
     auto address = eeprom_settings.ReadServerAddress();
     auto port = eeprom_settings.ReadServerPort();
-    this->Initialize(address.c_str(), port);
 
+    bool creds = eeprom_settings.ReadUseCredentials();
+    if (creds)
+    {
+        auto username = eeprom_settings.ReadUsername();
+        auto password = eeprom_settings.ReadPassword();
+        this->Initialize(address.c_str(), port, username, password);
+    }
+    else
+    {
+        this->Initialize(address.c_str(), port);
+    }
 };
 
 void MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port)
@@ -28,6 +38,21 @@ void MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port)
     m_Status = MQTT::Status::Connecting;
     this->GenerateConnectPacket();
     this->SendData();
+}
+
+void MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port, const std::string &username, const std::string &password)
+{
+    if(!m_Client.connect(ServerAddress,Port))
+    {
+        Serial.println("Failed to open socket to MQTT server");
+        m_Status = MQTT::Status::Error;
+        return;
+        
+    }
+    Serial.println("Socket correct");
+    m_Status = MQTT::Status::Connecting;
+    this->GenerateConnectPacket(username, password);
+    this->SendData();   
 }
 
 void MQTT::MQTTClient::GeneratePingPacket()
@@ -51,6 +76,35 @@ void MQTT::MQTTClient::GenerateConnectPacket()
     *(ptr++) = (MQTT_KEEP_ALIVE & 0x00FF);  // Keep alive
     ptr = MQTT::UTF8Encode(ptr,"abcd1234abcd1234", 16);
     m_BufferLength = (ptr - m_Buffer);
+    m_Buffer[1] =  m_BufferLength - 2;
+}
+
+
+void MQTT::MQTTClient::GenerateConnectPacket(const std::string &username, const std::string &password)
+{
+	uint8_t *ptr = m_Buffer;
+	*(ptr++) = MQTT_PACKET_CONNECT;// Fixed Header
+    ++ptr; // Skip length field
+	ptr = MQTT::UTF8Encode(ptr,"MQTT", 4); // Protocol name
+	*(ptr++) = 4; // Protocol level
+	if (password.size() == 0)
+	{
+		*(ptr++) = MQTT_CF_CLEAN_SESSION | MQTT_CF_USERNAME;  // Connect flags
+		*(ptr++) = (MQTT_KEEP_ALIVE & 0xFF00) >> 8;   // Keep alive
+        *(ptr++) = (MQTT_KEEP_ALIVE & 0x00FF);  // Keep alive
+		ptr = MQTT::UTF8Encode(ptr,"abcd1234abcd1234", 16); // UID
+		ptr = MQTT::UTF8Encode(ptr,username.c_str(), username.length());
+	}
+	else
+	{
+		*(ptr++) = MQTT_CF_CLEAN_SESSION | MQTT_CF_USERNAME | MQTT_CF_PASSWORD;  // Connect flags
+		*(ptr++) = (MQTT_KEEP_ALIVE & 0xFF00) >> 8;   // Keep alive
+        *(ptr++) = (MQTT_KEEP_ALIVE & 0x00FF);  // Keep alive
+		ptr = MQTT::UTF8Encode(ptr,"abcd1234abcd1234", 16); // UID
+		ptr = MQTT::UTF8Encode(ptr,username.c_str(), username.length()); // Username
+		ptr = MQTT::UTF8Encode(ptr,password.c_str(), password.length()); // Password
+	}
+	m_BufferLength = (ptr - m_Buffer);
     m_Buffer[1] =  m_BufferLength - 2;
 }
 
@@ -90,7 +144,13 @@ MQTT::Status MQTT::MQTTClient::Loop()
             Serial.println("Packet reception error");
             return m_Status;
         }
-        this->InterpretPacket();
+        if (!this->InterpretPacket())
+        {
+            m_Client.stop();
+            m_Status = MQTT::Status::Error;
+            Serial.println("Packet interpretation error");
+            return m_Status;
+        }
 
     }
     uint32_t current = millis();
@@ -194,9 +254,6 @@ bool MQTT::MQTTClient::InterpretPacket()
         case MQTT_PACKET_PUBLISH:
         return this->Packet_PUBLISH();
 
-
-
-
         default:
         Serial.print("Packet type error: ");
         Serial.println(PacketType, BIN);
@@ -299,7 +356,7 @@ bool MQTT::MQTTClient::Packet_SUBACK()
     uint16_t packetID = (m_Buffer[startIndex] << 8) | (m_Buffer[startIndex+1]);
     Serial.print("Packet ID: ");
     Serial.println(packetID);
-    auto pred = [packetID](const Subscribtion &a) -> bool 
+    auto pred = [packetID](const Subscription &a) -> bool 
     {
         return (a.m_ID == packetID);
     };
@@ -325,7 +382,7 @@ bool MQTT::MQTTClient::Packet_PUBLISH()
     std::string topic;
     ptr = MQTT::UTF8Decode(ptr, topic);
 
-    auto pred = [topic](const Subscribtion &a) -> bool 
+    auto pred = [topic](const Subscription &a) -> bool 
     {
         return (a.m_Topic == topic);
     };
@@ -345,7 +402,7 @@ bool MQTT::MQTTClient::Packet_PUBLISH()
 
         uint8_t payloadLength = m_BufferLength - (ptr - m_Buffer);
         uint8_t *payload = new uint8_t[payloadLength];
-        memcpy(payload, ptr, payloadLength);  
+        std::copy(ptr, ptr+payloadLength, payload);  
         (*ix).m_Handler(payload,payloadLength);
         delete[] payload;
         this->GeneratePublishAckPacket(packetID);
@@ -356,7 +413,7 @@ bool MQTT::MQTTClient::Packet_PUBLISH()
     {
         uint8_t payloadLength = m_BufferLength - (ptr - m_Buffer);
         uint8_t *payload = new uint8_t[payloadLength];
-        memcpy(payload, ptr, payloadLength);
+        std::copy(ptr, ptr+payloadLength, payload);  
         (*ix).m_Handler(payload,payloadLength);
         delete[] payload;
         return true;

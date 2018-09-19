@@ -6,7 +6,11 @@
 #include <WebHandler.h>
 #include <Milight.h>
 #include <Settings.h>
-#include <sstream>
+
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <errno.h>
 
 #define RESET_PIN 4
 
@@ -15,6 +19,7 @@
 
 void message_callback(uint8_t* data, uint8_t length);
 void factoryReset();
+std::vector<std::string> tokenize_message(char* message);
 
 WiFiManager wifiManager;
  
@@ -41,17 +46,24 @@ void setup()
 
     mqtt = new MQTT::MQTTClient();
     server = new ESP8266WebServer(80);
-    milight = new Milight(NRF_CE, NRF_CS, 0x35D5);
+    milight = new Milight(NRF_CE, NRF_CS);
     auto ret = milight->init();
-    Serial.printf("Ret: %d\n\r", ret);
+    if (ret != 0)
+    {
+        Serial.printf("Radio initialization failed: %d\n\r", ret);
+        server->on("/milight", []()->void {handler->HandleMilightError();});
+    }
+    else
+    {
+        server->on("/milight", []()->void {handler->HandleMilight();});
+    }
     handler = new WebHandler(server, milight);
-
     server->on("/", []()-> void { handler->HandleRoot();});
     server->on("/mqtt", []()-> void { handler->HandleMQTTConfig();});
-    server->on("/restart", []()-> void { handler->HandleRestart(); delay(25); ESP.restart();});
-    server->on("/factory-reset", []()-> void { handler->HandleRestart(); delay(25); factoryReset();});
-    server->on("/milight", []()->void {handler->HandleMilight();});
-
+    server->on("/restart", []()-> void { handler->HandleRestart(); delay(100); ESP.restart();});
+    server->on("/factory-reset", []()-> void { handler->HandleFactoryRestart(); delay(100); factoryReset();});
+    server->on("/milight-cfg", []()->void {handler->HandleMilightCfg();});
+    
     server->begin();
     
 }
@@ -62,7 +74,6 @@ void setup()
 
 void loop() 
 {
-
     auto result = mqtt->Loop();
     if ((result == MQTT::Status::Connected) && (!sent))
     {
@@ -93,20 +104,59 @@ void message_callback(uint8_t* data, uint8_t length)
     Serial.println();
 
     char * c_str = new char[(length+1)];
-    memcpy(c_str, data, length);
+    std::copy(data, data+length, c_str);
     c_str[length] = '\0';
     
-    char *part = nullptr;
-    part = strtok(c_str, " ");
-    //TODO
-    while (part)
+    auto tokens = tokenize_message(c_str);
+
+    delete[] c_str;
+
+    if (tokens.size() != 3)
     {
-        Serial.println(part);
-        part = strtok(nullptr, " ");
+        Serial.println("Invalid command received");
+        return;
+    }
+    std::transform(tokens.front().begin(), tokens.front().end(), tokens.front().begin(), ::tolower);
+
+    auto cmd = string_to_command(tokens.front());
+    uint8_t color, brightness;
+
+    char *test_ptr = nullptr;
+    errno = 0;
+    unsigned long temp = strtoul(tokens[1].c_str(), &test_ptr, 10);
+    if ((test_ptr == nullptr) || (*test_ptr != '\0') || (errno == ERANGE))
+    {
+        Serial.println("Invalid color argument received");
+        return;
     }
 
+    color = (temp > 255) ? 255 : temp;
 
+    test_ptr = nullptr;
+    errno = 0;
+    temp = strtoul(tokens[2].c_str(), &test_ptr, 10);
+    if ((test_ptr == nullptr) || (*test_ptr != '\0') || (errno == ERANGE))
+    {
+        Serial.println("Invalid brightness argument received");
+        return;
+    }
+    brightness = (temp > 25) ? 25 : temp;
+    milight->send_command(cmd, color, level_to_brightness(brightness));
 }
+
+std::vector<std::string> tokenize_message(char* message)
+{
+    std::vector<std::string> ret;
+    char *part = nullptr;
+    part = strtok(message, " ");
+    while (part)
+    {
+        ret.emplace_back(part);
+        part = strtok(nullptr, " ");
+    }
+    return ret;
+}
+
 
 void factoryReset()
 {
@@ -114,5 +164,10 @@ void factoryReset()
     eeprom_settings.WriteServerAddress("0.0.0.0");
     eeprom_settings.WriteServerPort(0);
     eeprom_settings.WriteUseCredentials(false);
+    eeprom_settings.WriteMilightDetectedID(0);
+    eeprom_settings.WriteMilightDeviceID(0);
+    eeprom_settings.WriteMQTTTopic("");
+    eeprom_settings.WritePassword("");
+    eeprom_settings.WriteUsername("");
     ESP.restart();
 }

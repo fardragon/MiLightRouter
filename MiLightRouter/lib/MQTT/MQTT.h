@@ -24,6 +24,7 @@ namespace MQTT
 
         private:
         void Initialize(const char *ServerAddress, uint16_t Port);
+        void Initialize(const char *ServerAddress, uint16_t Port, const std::string &username, const std::string &password);
 
         bool ReceivePacket();
         bool InterpretPacket();
@@ -41,6 +42,7 @@ namespace MQTT
         bool Packet_PUBLISH();
 
         void GenerateConnectPacket();
+        void GenerateConnectPacket(const std::string &username, const std::string &password);
         void GeneratePingPacket();
         uint16_t GenerateSubscribePacket(const char *topic, uint8_t length);
         void GeneratePublishAckPacket(const uint16_t &packetID);
@@ -60,7 +62,7 @@ namespace MQTT
         uint32_t m_LastActivity;
         bool m_SentPing;
 
-        std::vector<MQTT::Subscribtion> m_Subscriptions;
+        std::vector<MQTT::Subscription> m_Subscriptions;
 
     };
 }

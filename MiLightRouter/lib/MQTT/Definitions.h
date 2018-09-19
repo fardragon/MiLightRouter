@@ -35,12 +35,13 @@ namespace MQTT
         Disconnected,
         Connecting,
         Error,
-        Connected
+        Connected,
+        Subscribed
     };
 
-    struct Subscribtion
+    struct Subscription
     {
-        Subscribtion(std::string Topic, std::function<void(uint8_t*,uint8_t)> Handler, uint16_t ID)
+        Subscription(std::string Topic, std::function<void(uint8_t*,uint8_t)> Handler, uint16_t ID)
             : m_Topic(Topic), m_Handler(Handler), m_Ack(false),  m_ID(ID)
             {
             };
