@@ -111,7 +111,7 @@ void message_callback(uint8_t* data, uint8_t length)
 
     delete[] c_str;
 
-    if (tokens.size() != 3)
+    if (tokens.size() < 1)
     {
         Serial.println("Invalid command received");
         return;
@@ -119,29 +119,47 @@ void message_callback(uint8_t* data, uint8_t length)
     std::transform(tokens.front().begin(), tokens.front().end(), tokens.front().begin(), ::tolower);
 
     auto cmd = string_to_command(tokens.front());
-    uint8_t color, brightness;
 
-    char *test_ptr = nullptr;
-    errno = 0;
-    unsigned long temp = strtoul(tokens[1].c_str(), &test_ptr, 10);
-    if ((test_ptr == nullptr) || (*test_ptr != '\0') || (errno == ERANGE))
+    if (cmd == MilightCommand::COLOR)
     {
-        Serial.println("Invalid color argument received");
-        return;
+        if (tokens.size() < 2)
+        {
+            Serial.println("Invalid command received");
+            return;
+        }
+        char *test_ptr = nullptr;
+        errno = 0;
+        auto temp = strtoul(tokens[1].c_str(), &test_ptr, 10);
+        if ((test_ptr == nullptr) || (*test_ptr != '\0') || (errno == ERANGE))
+        {
+            Serial.println("Invalid color argument received");
+            return;
+        }
+        uint8_t color = (temp > 255) ? 255 : temp;
+        milight->send_command(cmd, color, 0);
     }
-
-    color = (temp > 255) ? 255 : temp;
-
-    test_ptr = nullptr;
-    errno = 0;
-    temp = strtoul(tokens[2].c_str(), &test_ptr, 10);
-    if ((test_ptr == nullptr) || (*test_ptr != '\0') || (errno == ERANGE))
+    else if (cmd == MilightCommand::BRIGHTNESS)
     {
-        Serial.println("Invalid brightness argument received");
-        return;
+        if (tokens.size() < 2)
+        {
+            Serial.println("Invalid command received");
+            return;
+        }
+        char *test_ptr = nullptr;
+        errno = 0;
+        auto temp = strtoul(tokens[1].c_str(), &test_ptr, 10);
+        if ((test_ptr == nullptr) || (*test_ptr != '\0') || (errno == ERANGE))
+        {
+            Serial.println("Invalid brightness argument received");
+            return;
+        }
+        uint8_t brightness = (temp > 25) ? 25 : temp;
+        milight->send_command(cmd, 0, level_to_brightness(brightness));
     }
-    brightness = (temp > 25) ? 25 : temp;
-    milight->send_command(cmd, color, level_to_brightness(brightness));
+    else
+    {   
+        milight->send_command(cmd, 0, 0);
+    }
 }
 
 std::vector<std::string> tokenize_message(char* message)

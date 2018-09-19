@@ -9,18 +9,18 @@ NRF24MiLightRadio::NRF24MiLightRadio(const uint8_t RF24_CE, const uint8_t RF24_C
 {
 }
 
-int NRF24MiLightRadio::begin()
+uint8_t NRF24MiLightRadio::begin()
 {
-  int retval = m_pl1167.open();
+  auto retval = m_pl1167.open();
   if (retval < 0)
   {
-    return retval;
+    return 1;
   }
 
   retval = configure();
   if (retval < 0)
   {
-    return retval;
+    return 2;
   }
 
   available();

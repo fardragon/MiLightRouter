@@ -9,7 +9,7 @@ class NRF24MiLightRadio
 {
   public:
     NRF24MiLightRadio(const uint8_t RF24_CE, const uint8_t RF24_CS);
-    int begin();
+    uint8_t begin();
     bool available();
     int read(uint8_t frame[], size_t &frame_length);
     int dupesReceived();
