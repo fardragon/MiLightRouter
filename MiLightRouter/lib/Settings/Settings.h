@@ -45,6 +45,8 @@ class Settings
     void WriteMilightDeviceID(const uint16_t id);
     void WriteMilightDetectedID(const uint16_t id);
 
+    bool mqtt_connected = false;
+
 };
 
 extern Settings eeprom_settings;

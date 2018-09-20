@@ -18,6 +18,7 @@
 #define NRF_CS 5
 
 void message_callback(uint8_t* data, uint8_t length);
+void connect_callback();
 void factoryReset();
 std::vector<std::string> tokenize_message(char* message);
 
@@ -28,7 +29,7 @@ ESP8266WebServer *server = nullptr;
 WebHandler *handler = nullptr;
 Milight *milight = nullptr;
 
-bool sent = false;
+unsigned long last_connect = 0;
 
 void setup() 
 {
@@ -44,7 +45,22 @@ void setup()
 
     wifiManager.autoConnect("MiLight Router", "12345678");
 
-    mqtt = new MQTT::MQTTClient();
+    mqtt = new MQTT::MQTTClient(connect_callback);
+
+    auto address = eeprom_settings.ReadServerAddress();
+    auto port = eeprom_settings.ReadServerPort();
+    bool creds = eeprom_settings.ReadUseCredentials();
+    if (creds)
+    {
+        auto username = eeprom_settings.ReadUsername();
+        auto password = eeprom_settings.ReadPassword();
+        mqtt->Initialize(address.c_str(), port, username, password);
+    }
+    else
+    {
+        mqtt->Initialize(address.c_str(), port);
+    }
+    last_connect = millis();
     server = new ESP8266WebServer(80);
     milight = new Milight(NRF_CE, NRF_CS);
     auto ret = milight->init();
@@ -75,19 +91,31 @@ void setup()
 void loop() 
 {
     auto result = mqtt->Loop();
-    if ((result == MQTT::Status::Connected) && (!sent))
+    if (result == MQTT::Status::Disconnected) 
     {
-        Serial.println("MQTT connected. Subscribing");
-        std::string topic = eeprom_settings.ReadMQTTTopic();
-        if (topic.length() > 0)
+        eeprom_settings.mqtt_connected = false;
+        if ((millis() - last_connect) > 10000)
         {
-            mqtt->Subscribe(topic, message_callback);
+            Serial.println("MQTT reconnecting");
+            auto address = eeprom_settings.ReadServerAddress();
+            auto port = eeprom_settings.ReadServerPort();
+            bool creds = eeprom_settings.ReadUseCredentials();
+            if (creds)
+            {
+                auto username = eeprom_settings.ReadUsername();
+                auto password = eeprom_settings.ReadPassword();
+                mqtt->Initialize(address.c_str(), port, username, password);
+            }
+            else
+            {
+                mqtt->Initialize(address.c_str(), port);
+            }
+            last_connect = millis();
         }
-        else
-        {
-            Serial.println("Invalid topic");
-        }
-        sent = true;
+    }
+    else
+    {
+        eeprom_settings.mqtt_connected = true;
     }
     server->handleClient();
     milight->receive();
@@ -106,7 +134,6 @@ void message_callback(uint8_t* data, uint8_t length)
     char * c_str = new char[(length+1)];
     std::copy(data, data+length, c_str);
     c_str[length] = '\0';
-    
     auto tokens = tokenize_message(c_str);
 
     delete[] c_str;
@@ -159,6 +186,20 @@ void message_callback(uint8_t* data, uint8_t length)
     else
     {   
         milight->send_command(cmd, 0, 0);
+    }
+}
+
+void connect_callback()
+{
+    Serial.println("MQTT connected. Subscribing");
+    std::string topic = eeprom_settings.ReadMQTTTopic();
+    if (topic.length() > 0)
+    {
+        mqtt->Subscribe(topic, message_callback);
+    }
+    else
+    {
+        Serial.println("Invalid topic");
     }
 }
 

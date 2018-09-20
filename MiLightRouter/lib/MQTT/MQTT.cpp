@@ -1,36 +1,20 @@
 #include "MQTT.h"
 #include "Utility.h"
 
-#include <functional>
 #include <algorithm>
 #include <Settings.h>
 
-MQTT::MQTTClient::MQTTClient()
-    : m_Status(MQTT::Status::Disconnected), m_PacketID(0),  m_LastActivity(millis()), m_SentPing(false)
-{
-
-    auto address = eeprom_settings.ReadServerAddress();
-    auto port = eeprom_settings.ReadServerPort();
-
-    bool creds = eeprom_settings.ReadUseCredentials();
-    if (creds)
-    {
-        auto username = eeprom_settings.ReadUsername();
-        auto password = eeprom_settings.ReadPassword();
-        this->Initialize(address.c_str(), port, username, password);
-    }
-    else
-    {
-        this->Initialize(address.c_str(), port);
-    }
-};
+MQTT::MQTTClient::MQTTClient(std::function<void(void)> connect_callback)
+    : m_Status(MQTT::Status::Disconnected), m_PacketID(0),  m_LastActivity(millis()), m_SentPing(false), m_connect_callback(connect_callback)
+{ };
 
 void MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port)
 {
+    m_Subscriptions.clear();
     if(!m_Client.connect(ServerAddress,Port))
     {
         Serial.println("Failed to open socket to MQTT server");
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         return;
         
     }
@@ -42,10 +26,11 @@ void MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port)
 
 void MQTT::MQTTClient::Initialize(const char *ServerAddress, uint16_t Port, const std::string &username, const std::string &password)
 {
+    m_Subscriptions.clear();
     if(!m_Client.connect(ServerAddress,Port))
     {
         Serial.println("Failed to open socket to MQTT server");
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         return;
         
     }
@@ -134,20 +119,25 @@ void MQTT::MQTTClient::GeneratePublishAckPacket(const uint16_t &packetID)
 
 MQTT::Status MQTT::MQTTClient::Loop()
 {
-    if (( m_Status == MQTT::Status::Error ) || ( m_Status == MQTT::Status::Disconnected )) return m_Status;
+    if ((!m_Client.connected()) && (m_Status != MQTT::Status::Disconnected))
+    {
+        Serial.println("MQTT lost connection");
+        m_Status = MQTT::Status::Disconnected;
+    }
+    if (m_Status == MQTT::Status::Disconnected) return m_Status;
     if (m_Client.available())
     {
         if (!this->ReceivePacket())
         {
             m_Client.stop();
-            m_Status = MQTT::Status::Error;
+            m_Status = MQTT::Status::Disconnected;
             Serial.println("Packet reception error");
             return m_Status;
         }
         if (!this->InterpretPacket())
         {
             m_Client.stop();
-            m_Status = MQTT::Status::Error;
+            m_Status = MQTT::Status::Disconnected;
             Serial.println("Packet interpretation error");
             return m_Status;
         }
@@ -159,7 +149,7 @@ MQTT::Status MQTT::MQTTClient::Loop()
         if (m_SentPing)
         {
             m_Client.stop();
-            m_Status = MQTT::Status::Error;
+            m_Status = MQTT::Status::Disconnected;
             Serial.println("MQTT Server Timeout");
             return m_Status;
         }
@@ -228,13 +218,6 @@ void MQTT::MQTTClient::SendData()
 {
     m_Client.write(m_Buffer,m_BufferLength);
     m_LastActivity = millis();
-    /*
-    Serial.println("New packet: ");
-    for (uint8_t i = 0; i < m_BufferLength; ++i)
-    {
-        Serial.println(m_Buffer[i]);
-    }
-    */
 }
 
 bool MQTT::MQTTClient::InterpretPacket()
@@ -257,7 +240,7 @@ bool MQTT::MQTTClient::InterpretPacket()
         default:
         Serial.print("Packet type error: ");
         Serial.println(PacketType, BIN);
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         m_Client.stop();
         return false;
     }
@@ -273,9 +256,10 @@ uint8_t MQTT::MQTTClient::LengthBytes()
 
 bool MQTT::MQTTClient::Packet_CONNACK()
 {
+    Serial.println("CONNACK");
     if ((m_BufferLength != 4) || (m_Buffer[1] != 2)) 
     {
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         m_Client.stop();
         Serial.println("CONNACK Length error");
         return false;
@@ -283,7 +267,7 @@ bool MQTT::MQTTClient::Packet_CONNACK()
     uint8_t ConnectFlags = m_Buffer[2];
     if (ConnectFlags != 0)
     {
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         m_Client.stop();
         Serial.println("CONNACK Connect flags error");
         return false;
@@ -294,40 +278,41 @@ bool MQTT::MQTTClient::Packet_CONNACK()
         case 0:
         m_Status = MQTT::Status::Connected;
         Serial.println("Connected to MQTT server");
+        m_connect_callback();
         return true;
 
         case 1:
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         Serial.println("MQTT version error");
         m_Client.stop();
         return false;
 
         case 2:
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         Serial.println("MQTT Rejected ID");
         m_Client.stop();
         return false;
 
         case 3:
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         Serial.println("MQTT server unavalaible");
         m_Client.stop();
         return false;
 
         case 4:
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         Serial.println("MQTT Invalid login data");
         m_Client.stop();
         return false;
 
         case 5:
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         Serial.println("MQTT Not authorized");
         m_Client.stop();
         return false;
 
         default:
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         Serial.println("MQTT Invalid return code");
         m_Client.stop();
         return false;
@@ -337,9 +322,10 @@ bool MQTT::MQTTClient::Packet_CONNACK()
 
 bool MQTT::MQTTClient::Packet_PINGRESP()
 {
+    Serial.println("PINGRESP");
     if ((m_BufferLength != 2) || (m_Buffer[1] != 0)) 
     {
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         m_Client.stop();
         Serial.println("PINGRESP Length error");
         return false;
@@ -354,8 +340,6 @@ bool MQTT::MQTTClient::Packet_SUBACK()
     Serial.println("SUBACK");
     uint8_t startIndex = this->LengthBytes() + 1;
     uint16_t packetID = (m_Buffer[startIndex] << 8) | (m_Buffer[startIndex+1]);
-    Serial.print("Packet ID: ");
-    Serial.println(packetID);
     auto pred = [packetID](const Subscription &a) -> bool 
     {
         return (a.m_ID == packetID);
@@ -368,13 +352,14 @@ bool MQTT::MQTTClient::Packet_SUBACK()
 
 bool MQTT::MQTTClient::Packet_PUBLISH()
 {
+    Serial.println("PUBLISH");
     uint8_t qos = ((*m_Buffer) & 0b00000110) >> 1;
     if ((qos != 1) && (qos != 0)) 
     {
         Serial.print ("Invalid QOS: ");
         Serial.println(qos);
         m_Client.stop();
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         return false;
     }
     uint8_t skip = this->LengthBytes();
@@ -392,7 +377,7 @@ bool MQTT::MQTTClient::Packet_PUBLISH()
         Serial.print("Invalid topic: ");
         Serial.println(topic.c_str());
         m_Client.stop();
-        m_Status = MQTT::Status::Error;
+        m_Status = MQTT::Status::Disconnected;
         return false;
     }
     if (qos == 1)

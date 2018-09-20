@@ -52,6 +52,7 @@ static const char *MQTT_HTML PROGMEM =
 "</head>"
 "<body>"
 "<h1>MQTT settingsr</h1>"
+"<h2>MQTT status: __STATUS__</h2>"
 
 "<FORM action=\"/mqtt\" method=\"post\" accept-charset=\"UTF-8\">"
 "<P>"
@@ -383,6 +384,15 @@ void WebHandler::SendMQTTConfig()
     this->StringReplace(page, "__USERNAME__", eeprom_settings.ReadUsername());
     this->StringReplace(page, "__PASSWORD__", eeprom_settings.ReadPassword());
     this->StringReplace(page, "__TOPIC__", eeprom_settings.ReadMQTTTopic());
+
+    if (eeprom_settings.mqtt_connected)
+    {
+        this->StringReplace(page, "__STATUS__","connected");
+    }
+    else
+    {
+        this->StringReplace(page, "__STATUS__","disconnected");
+    }
     
     int size = snprintf(NULL, 0, "%u", MQTT_USERNAME_SIZE);
     char *str = new char[size];

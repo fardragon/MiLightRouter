@@ -34,9 +34,7 @@ namespace MQTT
     {
         Disconnected,
         Connecting,
-        Error,
-        Connected,
-        Subscribed
+        Connected
     };
 
     struct Subscription
