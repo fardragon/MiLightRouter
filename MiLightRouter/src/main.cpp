@@ -22,14 +22,15 @@ void connect_callback();
 void factoryReset();
 std::vector<std::string> tokenize_message(char* message);
 
+
 WiFiManager wifiManager;
- 
 MQTT::MQTTClient *mqtt = nullptr;
 ESP8266WebServer *server = nullptr;
 WebHandler *handler = nullptr;
 Milight *milight = nullptr;
 
 unsigned long last_connect = 0;
+uint8_t reconnect_count = 0;
 
 void setup() 
 {
@@ -43,6 +44,7 @@ void setup()
     pinMode(RESET_PIN, INPUT_PULLUP);
     attachInterrupt(RESET_PIN, factoryReset, FALLING);
 
+    
     wifiManager.autoConnect("MiLight Router", "12345678");
 
     mqtt = new MQTT::MQTTClient(connect_callback);
@@ -90,6 +92,7 @@ void setup()
 
 void loop() 
 {
+    if (reconnect_count == 5) ESP.restart();
     auto result = mqtt->Loop();
     if (result == MQTT::Status::Disconnected) 
     {
@@ -111,11 +114,13 @@ void loop()
                 mqtt->Initialize(address.c_str(), port);
             }
             last_connect = millis();
+            ++reconnect_count;
         }
     }
     else
     {
         eeprom_settings.mqtt_connected = true;
+        reconnect_count = 0;
     }
     server->handleClient();
     milight->receive();

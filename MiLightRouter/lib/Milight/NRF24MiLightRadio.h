@@ -12,7 +12,6 @@ class NRF24MiLightRadio
     uint8_t begin();
     bool available();
     int read(uint8_t frame[], size_t &frame_length);
-    int dupesReceived();
     int write(uint8_t frame[], size_t frame_length);
     void resend();
     int configure();
